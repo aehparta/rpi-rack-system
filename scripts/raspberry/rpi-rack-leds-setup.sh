@@ -17,16 +17,22 @@ if [ ! -d "/sys/class/pwm/pwmchip0/pwm1" ]; then
 fi
 
 case "$1" in
-	shutdown)
+	booting)
 		echo 0 > /sys/class/pwm/pwmchip0/pwm1/enable
 		echo 1000000000 > /sys/class/pwm/pwmchip0/pwm1/period
-		echo 200000000 > /sys/class/pwm/pwmchip0/pwm1/duty_cycle
+		echo 800000000 > /sys/class/pwm/pwmchip0/pwm1/duty_cycle
 		echo 1 > /sys/class/pwm/pwmchip0/pwm1/enable
 		;;
 	running)
 		echo 0 > /sys/class/pwm/pwmchip0/pwm1/enable
 		echo 1000000000 > /sys/class/pwm/pwmchip0/pwm1/period
 		echo 5000000 > /sys/class/pwm/pwmchip0/pwm1/duty_cycle
+		echo 1 > /sys/class/pwm/pwmchip0/pwm1/enable
+		;;
+	shutdown)
+		echo 0 > /sys/class/pwm/pwmchip0/pwm1/enable
+		echo 1000000000 > /sys/class/pwm/pwmchip0/pwm1/period
+		echo 200000000 > /sys/class/pwm/pwmchip0/pwm1/duty_cycle
 		echo 1 > /sys/class/pwm/pwmchip0/pwm1/enable
 		;;
 	*)
