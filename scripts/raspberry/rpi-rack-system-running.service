@@ -1,0 +1,9 @@
+[Unit]
+Description=Rack LED indicator service, running script
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/rpi-rack-leds-setup running
+
+[Install]
+WantedBy=multi-user.target
