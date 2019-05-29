@@ -35,6 +35,9 @@ case "$1" in
 		echo 200000000 > /sys/class/pwm/pwmchip0/pwm1/duty_cycle
 		echo 1 > /sys/class/pwm/pwmchip0/pwm1/enable
 		;;
+	poweroff)
+		echo 0 > /sys/class/pwm/pwmchip0/pwm1/enable
+		;;
 	*)
 		;;
 esac

@@ -1,6 +1,6 @@
 [Unit]
 Description=Rack LED indicator service, booting script
-Before=basic.target
+After=sysinit.target
 DefaultDependencies=no
 
 [Service]
@@ -8,4 +8,4 @@ Type=oneshot
 ExecStart=/usr/bin/rpi-rack-leds-setup booting
 
 [Install]
-WantedBy=basic.target
+WantedBy=sysinit.target

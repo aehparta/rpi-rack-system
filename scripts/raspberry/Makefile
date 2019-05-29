@@ -42,6 +42,8 @@ services:
 	cp rpi-rack-system-booting.service /lib/systemd/system/rpi-rack-system-booting.service
 	cp rpi-rack-system-running.service /lib/systemd/system/rpi-rack-system-running.service
 	cp rpi-rack-system-shutdown.service /lib/systemd/system/rpi-rack-system-shutdown.service
+	cp rpi-rack-system-poweroff.service /lib/systemd/system/rpi-rack-system-poweroff.service
 	systemctl enable rpi-rack-system-booting.service
 	systemctl enable rpi-rack-system-running.service
 	systemctl enable rpi-rack-system-shutdown.service
+	systemctl enable rpi-rack-system-poweroff.service
