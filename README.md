@@ -2,9 +2,15 @@
 
 Raspberry Pi and similar compatible rack installation system.
 
-Basic holder supports:
-* Raspberry Pi 2/3/4 and other boards that have matching size and GPIO header
-* Orange Pi R1 (suitable as a router with dual built-in 100 Mbps ethernet)
+Basic holder:
+* *10x10 cm*
+* Supports:
+  * Raspberry Pi 2/3/4 and other boards that have matching size and GPIO header
+  * Orange Pi R1 (suitable as a router with dual built-in 100 Mbps ethernet)
+
+Single backplane module:
+* *10x10 cm*
+* Takes 4 holder boards
 
 ## Power supply
 
