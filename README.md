@@ -10,7 +10,7 @@ Basic holder:
 
 Single backplane module:
 * *10x10 cm*, cheap PCB size
-* Takes 4 holder boards
+* Takes 4 holder boards using 2x10 card edge connector (3.96 mm pitch)
 
 ## Power supply
 
