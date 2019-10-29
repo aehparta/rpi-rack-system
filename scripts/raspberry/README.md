@@ -1,6 +1,6 @@
 # Raspberry Pi scripts
 
-Will display current system state using fonrt panel LED.
+Will display current system state using front panel LED.
 
 ## Install
 
