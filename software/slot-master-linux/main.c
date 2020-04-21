@@ -4,32 +4,13 @@
 
 #include <libe/libe.h>
 #include <libe/linkedlist.h>
-#include <pthread.h>
-#include <termios.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <netdb.h>
+#include "slot.h"
 
 
 #define SLOT_COUNT          12
 #define SPI_FREQ            400000
 #define TELNET_BASE_PORT    2000
 
-struct q {
-	char c;
-	struct q *prev;
-	struct q *next;
-};
-
-struct slot {
-	int s_accept;
-	int s_client;
-
-	struct q *qfirst;
-	struct q *qlast;
-	pthread_mutex_t qlock;
-};
 
 struct slot slots[SLOT_COUNT];
 
@@ -39,49 +20,18 @@ struct spi_device device;
 
 int p_init(void)
 {
-	int err = 0, yes = 1;
 	/* library initializations */
 	os_init();
 	log_init();
 
-	/* reset slots */
+	/* init slots */
 	memset(slots, 0, sizeof(slots));
 	for (int i = 0; i < SLOT_COUNT; i++) {
-		slots[i].s_accept = -1;
-		slots[i].s_client = -1;
+		slot_init(&slots[i]);
 	}
+	/* open slots */
 	for (int i = 0; i < SLOT_COUNT; i++) {
-		struct addrinfo hints, *servinfo, *p;
-		int sockfd = -1;
-
-		char port[8];
-		sprintf(port, "%d", TELNET_BASE_PORT + i);
-
-		memset(&hints, 0, sizeof hints);
-		hints.ai_family = AF_UNSPEC;
-		hints.ai_socktype = SOCK_STREAM;
-		err = getaddrinfo("0.0.0.0", port, &hints, &servinfo);
-		CRIT_IF_R(err, -1, "getaddrinfo failed, reason: %s\n", gai_strerror(err));
-
-		for (p = servinfo; p != NULL; p = p->ai_next) {
-			sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-			if (sockfd < 0) {
-				continue;
-			}
-			setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-			if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-				close(sockfd);
-				sockfd = -1;
-				continue;
-			}
-			break;
-		}
-
-		CRIT_IF_R(sockfd < 0, -1, "failed to open socket for slot #%d", i);
-
-		slots[i].s_accept = sockfd;
-		err = listen(slots[i].s_accept, 1);
-		CRIT_IF_R(err, -1, "failed to open listening socket for slot #%d", i);
+		slot_open(&slots[i], i, "0.0.0.0", TELNET_BASE_PORT + i);
 	}
 
 	/* open spi as master */
@@ -94,17 +44,7 @@ int p_init(void)
 void p_exit(int signum)
 {
 	for (int i = 0; i < SLOT_COUNT; i++) {
-		if (slots[i].s_client >= 0) {
-			close(slots[i].s_client);
-		}
-		if (slots[i].s_accept >= 0) {
-			close(slots[i].s_accept);
-		}
-		for (struct q *q = slots[i].qfirst; q; ) {
-			struct q *qq = q->next;
-			free(q);
-			q = qq;
-		}
+		slot_close(&slots[i]);
 	}
 	spi_close(&device);
 	spi_master_close(&master);
@@ -122,27 +62,37 @@ int main(void)
 	INFO_MSG("this thing started");
 	int sn = 0;
 	while (1) {
-		struct q *q;
-		uint8_t data[8];
+		struct slot_cq *cq;
+		char data[8], data_send[sizeof(data) + 1];
+
 		memset(data, 0, sizeof(data));
+		memset(data_send, 0, sizeof(data_send));
 
 		/* check if there is input to be forwarded */
 		pthread_mutex_lock(&slots[sn].qlock);
-		LL_GET(slots[sn].qfirst, slots[sn].qlast, q);
+		LL_GET(slots[sn].qfirst, slots[sn].qlast, cq);
 		pthread_mutex_unlock(&slots[sn].qlock);
-		if (q) {
-			data[0] = q->c;
-			free(q);
+		if (cq) {
+			data[0] = cq->c;
+			free(cq);
 		}
 
-		spi_transfer(&device, data, sizeof(data));
+		spi_transfer(&device, (uint8_t *)data, sizeof(data));
 
-		for (int i = 0; i < sizeof(data); i++) {
+		for (int i = 0, j = 0; i < sizeof(data); i++) {
 			if (isprint(data[i]) || iscntrl(data[i])) {
 				printf("%c", data[i]);
 			} else if (data[i] != 0) {
 				printf("?");
 			}
+
+			if (data[i] != 0) {
+				data_send[j++] = data[i];
+			}
+		}
+
+		if (strlen(data_send) > 0) {
+			slot_send(&slots[sn], data_send, strlen(data_send));
 		}
 
 		if (data[sizeof(data) - 1] == '\0') {
