@@ -13,68 +13,87 @@
 #include "slot.h"
 
 
+struct slot *slots = NULL;
+int slots_c = 0;
+
 /* internals */
-static void *slot_thread(void *data);
+static void *slot_telnet_thread(void *data);
 
 
-int slot_init(struct slot *slot)
+int slot_init(int count)
 {
-	memset(slot, 0, sizeof(*slot));
-	slot->server_fd = -1;
-	slot->client_fd = -1;
-	pthread_mutex_init(&slot->qlock, NULL);
-	return 0;
-}
+	slots = malloc(sizeof(struct slot) * count);
+	slots_c = count;
+	memset(slots, 0, sizeof(struct slot) * count);
 
-int slot_open(struct slot *slot, int id, char *address, uint16_t port)
-{
-	struct addrinfo hints, *result, *p;
-	int sock = -1;
-	int err;
-	int yes = 1;
-
-	char port_s[8];
-	sprintf(port_s, "%d", port);
-
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	err = getaddrinfo(address, port_s, &hints, &result);
-	CRIT_IF_R(err, -1, "getaddrinfo failed, reason: %s\n", gai_strerror(err));
-
-	for (p = result; p != NULL; p = p->ai_next) {
-		sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-		if (sock < 0) {
-			continue;
-		}
-		setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-		if (bind(sock, p->ai_addr, p->ai_addrlen) == -1) {
-			close(sock);
-			continue;
-		}
-		break;
+	for (int i = 0; i < count; i++) {
+		struct slot *slot = &slots[i];
+		slot->id = i;
+		slot->server_fd = -1;
+		slot->client_fd = -1;
+		slot->websocket = -1;
+		pthread_mutex_init(&slot->qlock, NULL);
 	}
-	freeaddrinfo(result);
-
-	CRIT_IF_R(!p, -1, "failed to open socket for slot #%d", id);
-
-	slot->server_fd = sock;
-	err = listen(slot->server_fd, 1);
-	CRIT_IF_R(err, -1, "failed to open listening socket for slot #%d", id);
-
-	slot->id = id;
-
-	/* start handler thread */
-	slot->thread_exec = 1;
-	pthread_create(&slot->thread, NULL, slot_thread, slot);
 
 	return 0;
 }
 
-void slot_close(struct slot *slot)
+int slot_open(int id, char *address, uint16_t port)
 {
-	slot->thread_exec = 0;
-	pthread_join(slot->thread, NULL);
+	struct slot *slot = &slots[id];
+
+	if (port > 0) {
+		struct addrinfo hints, *result, *p;
+		int sock = -1;
+		int err;
+		int yes = 1;
+
+		char port_s[8];
+		sprintf(port_s, "%d", port);
+
+		memset(&hints, 0, sizeof hints);
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		err = getaddrinfo(address, port_s, &hints, &result);
+		CRIT_IF_R(err, -1, "getaddrinfo failed, reason: %s\n", gai_strerror(err));
+
+		for (p = result; p != NULL; p = p->ai_next) {
+			sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+			if (sock < 0) {
+				continue;
+			}
+			setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+			if (bind(sock, p->ai_addr, p->ai_addrlen) == -1) {
+				close(sock);
+				continue;
+			}
+			break;
+		}
+		freeaddrinfo(result);
+
+		CRIT_IF_R(!p, -1, "failed to open socket for slot #%d", id);
+
+		slot->server_fd = sock;
+		err = listen(slot->server_fd, 1);
+		CRIT_IF_R(err, -1, "failed to open listening socket for slot #%d", id);
+
+		/* start handler thread */
+		DEBUG_MSG("starting telnet thread for slot #%d (%s:%d)", slot->id, address ? address : "?", port);
+		slot->thread_telnet_exec = 1;
+		pthread_create(&slot->thread_telnet, NULL, slot_telnet_thread, slot);
+	}
+
+	return 0;
+}
+
+void slot_close(int id)
+{
+	struct slot *slot = &slots[id];
+
+	if (slot->thread_telnet_exec) {
+		slot->thread_telnet_exec = 0;
+		pthread_join(slot->thread_telnet, NULL);
+	}
 
 	if (slot->client_fd >= 0) {
 		close(slot->client_fd);
@@ -95,19 +114,38 @@ void slot_close(struct slot *slot)
 	pthread_mutex_destroy(&slot->qlock);
 }
 
-int slot_send(struct slot *slot, void *data, size_t size)
+int slot_send(int id, void *data, size_t size)
 {
-	if (slot->client_fd >= 0) {
-		return send(slot->client_fd, data, size, 0);
-	}
+	struct slot *slot = &slots[id];
 
-	return -1;
+	if (slot->client_fd >= 0) {
+		send(slot->client_fd, data, size, 0);
+	}
+	if (slot->websocket >= 0) {
+		uint8_t *p = data;
+		for (; size > 0; ) {
+			/* fin-bit set (0x80) and text frame (0x01) */
+			uint8_t header[2] = { 0x81, size < 126 ? size : 125 };
+			send(slot->websocket, header, 2, 0);
+			send(slot->websocket, p, size, 0);
+			size -= header[1];
+		}
+	}
+	return 0;
 }
+
+int slot_add_websocket(int id, MHD_socket s)
+{
+	struct slot *slot = &slots[id];
+	slot->websocket = s;
+	return 0;
+}
+
 
 /* internals */
 
 
-static void *slot_thread(void *data)
+static void *slot_telnet_thread(void *data)
 {
 	struct slot *slot = data;
 	fd_set r_fds;
@@ -117,7 +155,7 @@ static void *slot_thread(void *data)
 	FD_SET(slot->server_fd, &r_fds);
 	max_fd = slot->server_fd;
 
-	while (slot->thread_exec) {
+	while (slot->thread_telnet_exec) {
 		struct timeval tv;
 		fd_set r = r_fds;
 		int n;
@@ -174,18 +212,18 @@ static void *slot_thread(void *data)
 			int s = accept(slot->server_fd, NULL, NULL);
 			if (slot->client_fd >= 0) {
 				/* already open connection, deny this */
-				dprintf(s, "connection already open on slot #%d\n", slot->id);
+				dprintf(s, "telnet connection already open on slot #%d\n", slot->id);
 				close(s);
 			} else {
 				slot->client_fd = s;
 				FD_SET(slot->client_fd, &r_fds);
 				max_fd = max_fd < slot->client_fd ? slot->client_fd :  max_fd;
-				printf("connection opened to slot #%d\n", slot->id);
+				INFO_MSG("telnet connection opened to slot #%d", slot->id);
 			}
 		}
 	}
 
-	printf("exit thread of slot #%d\n", slot->id);
+	DEBUG_MSG("exit telnet thread for slot #%d", slot->id);
 
 	return NULL;
 }

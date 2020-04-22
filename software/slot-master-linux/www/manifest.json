@@ -1,0 +1,9 @@
+{
+  "name": "Rack Telnet Client",
+  "start_url": "/",
+  "sockets": {
+    "tcp": {
+      "connect": "*:*"
+    }
+  }
+}

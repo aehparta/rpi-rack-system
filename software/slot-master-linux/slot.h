@@ -5,6 +5,7 @@
 #ifndef _SLOT_H_
 #define _SLOT_H_
 
+#include <microhttpd.h>
 #include <stdint.h>
 #include <pthread.h>
 
@@ -17,12 +18,13 @@ struct slot_cq {
 
 struct slot {
 	int id;
-
+	
 	int server_fd;
 	int client_fd;
+	MHD_socket websocket;
 
-	pthread_t thread;
-	uint8_t thread_exec;
+	pthread_t thread_telnet;
+	uint8_t thread_telnet_exec;
 
 	struct slot_cq *qfirst;
 	struct slot_cq *qlast;
@@ -30,12 +32,14 @@ struct slot {
 };
 
 
-int slot_init(struct slot *slot);
+int slot_init(int count);
 
-int slot_open(struct slot *slot, int id, char *address, uint16_t port);
-void slot_close(struct slot *slot);
+int slot_open(int id, char *address, uint16_t port);
+void slot_close(int id);
 
-int slot_send(struct slot *slot, void *data, size_t size);
+int slot_send(int id, void *data, size_t size);
+
+int slot_add_websocket(int id, MHD_socket s);
 
 
 
