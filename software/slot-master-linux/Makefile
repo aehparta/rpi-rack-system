@@ -1,6 +1,8 @@
 
 TARGET = OPI
+DEBUG = 1
 USE = GPIO SPI LOG LOG_COLORS
+LDFLAGS = -lmicrohttpd -lb64 -lcrypto
 
 # init
 include $(LIBE_PATH)/init.mk
@@ -9,7 +11,6 @@ include $(LIBE_PATH)/init.mk
 BUILD_BINS = racksm
 PROGRAM_BIN = racksm
 racksm_SRC = main.c slot.c opt.c httpd.c $(libe_SRC)
-LDFLAGS = -lmicrohttpd -lb64 -lcrypto
 
 # build
 include $(LIBE_PATH)/build.mk

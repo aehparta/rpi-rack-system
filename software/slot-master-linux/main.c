@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 			if (isprint(data[i]) || iscntrl(data[i])) {
 				printf("%c", data[i]);
 			} else if (data[i] != 0) {
-				printf("?");
+				printf("{%02x}", data[i]);
 			}
 
 			if (data[i] != 0) {
