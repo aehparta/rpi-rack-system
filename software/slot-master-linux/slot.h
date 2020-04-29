@@ -10,37 +10,33 @@
 #include <pthread.h>
 
 
-struct slot_cq {
-	char c;
-	struct slot_cq *prev;
-	struct slot_cq *next;
-};
-
 struct slot {
 	int id;
 	
 	int server_fd;
 	int client_fd;
-	MHD_socket websocket;
 
 	pthread_t thread_telnet;
 	uint8_t thread_telnet_exec;
 
-	struct slot_cq *qfirst;
-	struct slot_cq *qlast;
-	pthread_mutex_t qlock;
+	/* pipe for sending data through slot rx line */
+	int p_rx[2];
+
+	/* pipe for receiving data through slot tx line */
+	int p_tx[2];
 };
 
 
-int slot_init(int count);
+int slot_init(void);
+void slot_quit(void);
 
 int slot_open(int id, char *address, uint16_t port);
 void slot_close(int id);
 
-int slot_send(int id, void *data, size_t size);
+int slot_spi_check(int id, struct spi_device *device);
 
-int slot_add_websocket(int id, MHD_socket s);
-
+int slot_fd_rx(int id);
+int slot_fd_tx(int id);
 
 
 #endif /* _SLOT_H_ */

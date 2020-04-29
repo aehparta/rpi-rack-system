@@ -7,40 +7,63 @@
 #include <libe/linkedlist.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
 #include "slot.h"
+#include "opt.h"
 
 
-struct slot *slots = NULL;
-int slots_c = 0;
+struct slot slots[SLOT_COUNT];
 
 /* internals */
 static void *slot_telnet_thread(void *data);
 
+#define SLOT_GET(id, ret) \
+	if (id < 0 || id >= SLOT_COUNT) { return ret; }; \
+	struct slot *slot = &slots[id];
 
-int slot_init(int count)
+
+int slot_init()
 {
-	slots = malloc(sizeof(struct slot) * count);
-	slots_c = count;
-	memset(slots, 0, sizeof(struct slot) * count);
+	memset(slots, 0, sizeof(slots));
 
-	for (int i = 0; i < count; i++) {
+	for (int i = 0; i < SLOT_COUNT; i++) {
 		struct slot *slot = &slots[i];
 		slot->id = i;
 		slot->server_fd = -1;
 		slot->client_fd = -1;
-		slot->websocket = -1;
-		pthread_mutex_init(&slot->qlock, NULL);
+		slot->p_rx[0] = -1;
+		slot->p_rx[1] = -1;
+		slot->p_tx[0] = -1;
+		slot->p_tx[1] = -1;
+	}
+
+	int base_port = opt_get_int('S');
+	for (int i = 0; i < SLOT_COUNT; i++) {
+		CRIT_IF_R(slot_open(i, "0.0.0.0", base_port > 0 ? base_port + i : 0), -1, "unable to open slot #%d", i);
 	}
 
 	return 0;
 }
 
+void slot_quit()
+{
+	for (int i = 0; i < SLOT_COUNT; i++) {
+		slot_close(i);
+	}
+}
+
 int slot_open(int id, char *address, uint16_t port)
 {
-	struct slot *slot = &slots[id];
+	SLOT_GET(id, -1);
+
+	/* create pipe for sending data through slot rx line */
+	CRIT_IF_R(pipe2(slot->p_rx, O_NONBLOCK), -1, "failed to create pipe for sending data through slot #%d rx line", id);
+	/* create pipe for receiving data through slot tx line */
+	CRIT_IF_R(pipe2(slot->p_tx, O_NONBLOCK), -1, "failed to create pipe for receiving data through slot #%d tx line", id);
 
 	if (port > 0) {
 		struct addrinfo hints, *result, *p;
@@ -88,7 +111,7 @@ int slot_open(int id, char *address, uint16_t port)
 
 void slot_close(int id)
 {
-	struct slot *slot = &slots[id];
+	SLOT_GET(id,);
 
 	if (slot->thread_telnet_exec) {
 		slot->thread_telnet_exec = 0;
@@ -104,41 +127,68 @@ void slot_close(int id)
 		slot->server_fd = -1;
 	}
 
-	for (struct slot_cq *q = slot->qfirst; q; ) {
-		struct slot_cq *qq = q->next;
-		free(q);
-		q = qq;
+	if (slot->p_rx[0] >= 0) {
+		close(slot->p_rx[0]);
+		close(slot->p_rx[1]);
+		slot->p_rx[0] = -1;
+		slot->p_rx[1] = -1;
 	}
-	slot->qfirst = NULL;
-	slot->qlast = NULL;
-	pthread_mutex_destroy(&slot->qlock);
+
+	if (slot->p_tx[0] >= 0) {
+		close(slot->p_tx[0]);
+		close(slot->p_tx[1]);
+		slot->p_tx[0] = -1;
+		slot->p_tx[1] = -1;
+	}
 }
 
-int slot_send(int id, void *data, size_t size)
+int slot_spi_check(int id, struct spi_device *device)
 {
-	struct slot *slot = &slots[id];
+	SLOT_GET(id, -1);
+	char data[8], data_send[sizeof(data) + 1];
+	int size;
 
-	if (slot->client_fd >= 0) {
-		send(slot->client_fd, data, size, 0);
-	}
-	if (slot->websocket >= 0) {
-		uint8_t *p = data;
-		for (; size > 0; ) {
-			/* fin-bit set (0x80) and text frame (0x01) */
-			uint8_t header[2] = { 0x81, size < 126 ? size : 125 };
-			send(slot->websocket, header, 2, 0);
-			send(slot->websocket, p, size, 0);
-			size -= header[1];
+	memset(data, 0, sizeof(data));
+	memset(data_send, 0, sizeof(data_send));
+
+	size = read(slot->p_rx[0], data, 1);
+	data[0] = size == 1 ? data[0] : '\0';
+
+	spi_transfer(device, (uint8_t *)data, sizeof(data));
+
+	size = 0;
+	for (int i = 0; i < sizeof(data); i++) {
+		// if (isprint(data[i]) || iscntrl(data[i])) {
+		// 	printf("%c", data[i]);
+		// } else if (data[i] != 0) {
+		// 	printf("{%02x}", data[i]);
+		// }
+
+		if (data[i] != 0) {
+			data_send[size++] = data[i];
 		}
 	}
+
+	if (size > 0) {
+		if (slot->client_fd >= 0) {
+			send(slot->client_fd, data_send, size, 0);
+		}
+		write(slot->p_tx[1], data_send, size);
+	}
+
 	return 0;
 }
 
-int slot_add_websocket(int id, MHD_socket s)
+int slot_fd_rx(int id)
 {
-	struct slot *slot = &slots[id];
-	slot->websocket = s;
-	return 0;
+	SLOT_GET(id, -1);
+	return slot->p_rx[1];
+}
+
+int slot_fd_tx(int id)
+{
+	SLOT_GET(id, -1);
+	return slot->p_tx[0];
 }
 
 
@@ -182,9 +232,10 @@ static void *slot_telnet_thread(void *data)
 
 			/* if connection closed */
 			if (n <= 0) {
-				close(slot->client_fd);
-				FD_CLR(slot->client_fd, &r_fds);
+				int s = slot->client_fd;
 				slot->client_fd = -1;
+				close(s);
+				FD_CLR(s, &r_fds);
 				max_fd = slot->server_fd;
 				printf("client disconnected on slot #%d\n", slot->id);
 			} else {
@@ -197,13 +248,10 @@ static void *slot_telnet_thread(void *data)
 						printf("[%d]", data[i]);
 					}
 
-					pthread_mutex_lock(&slot->qlock);
-					struct slot_cq *cq = malloc(sizeof(*cq));
-					cq->c = data[i];
-					LL_APP(slot->qfirst, slot->qlast, cq);
-					pthread_mutex_unlock(&slot->qlock);
 				}
 				printf("\n");
+
+				write(slot->p_rx[1], data, n);
 			}
 		}
 

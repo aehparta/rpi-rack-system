@@ -9,7 +9,6 @@
 #include "httpd.h"
 
 
-#define SLOT_COUNT          12
 #define SPI_FREQ            400000
 
 
@@ -37,11 +36,7 @@ int p_init(void)
 	log_init();
 
 	/* init and open slots */
-	slot_init(SLOT_COUNT);
-	int base_port = opt_get_int('S');
-	for (int i = 0; i < SLOT_COUNT; i++) {
-		CRIT_IF_R(slot_open(i, "0.0.0.0", base_port > 0 ? base_port + i : 0), -1, "unable to open slot #%d", i);
-	}
+	CRIT_IF_R(slot_init(), -1, "slot initialization failed");
 
 	/* open spi as master */
 	spi_master_open(&master, NULL, SPI_FREQ, 0, 0, 0);
@@ -56,9 +51,7 @@ int p_init(void)
 void p_exit(int signum)
 {
 	httpd_quit();
-	for (int i = 0; i < SLOT_COUNT; i++) {
-		slot_close(i);
-	}
+	slot_quit();
 	spi_close(&device);
 	spi_master_close(&master);
 	log_quit();
@@ -77,42 +70,14 @@ int main(int argc, char *argv[])
 
 	/* start program loop */
 	INFO_MSG("this thing started");
-	int sn = 0;
 	while (1) {
-		struct slot_cq *cq;
-		char data[8], data_send[sizeof(data) + 1];
+		int c = 0;
 
-		memset(data, 0, sizeof(data));
-		memset(data_send, 0, sizeof(data_send));
-
-		/* check if there is input to be forwarded */
-		// pthread_mutex_lock(&slots[sn].qlock);
-		// LL_GET(slots[sn].qfirst, slots[sn].qlast, cq);
-		// pthread_mutex_unlock(&slots[sn].qlock);
-		// if (cq) {
-		// 	data[0] = cq->c;
-		// 	free(cq);
-		// }
-
-		spi_transfer(&device, (uint8_t *)data, sizeof(data));
-
-		for (int i = 0, j = 0; i < sizeof(data); i++) {
-			if (isprint(data[i]) || iscntrl(data[i])) {
-				printf("%c", data[i]);
-			} else if (data[i] != 0) {
-				printf("{%02x}", data[i]);
-			}
-
-			if (data[i] != 0) {
-				data_send[j++] = data[i];
-			}
+		for (int i = 0; i < SLOT_COUNT; i++) {
+			c += slot_spi_check(i, &device);
 		}
 
-		if (strlen(data_send) > 0) {
-			slot_send(sn, data_send, strlen(data_send));
-		}
-
-		if (data[sizeof(data) - 1] == '\0') {
+		if (!c) {
 			os_sleepf(0.001);
 		}
 	}
