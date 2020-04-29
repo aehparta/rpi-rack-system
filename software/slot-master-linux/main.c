@@ -61,22 +61,21 @@ void p_exit(int signum)
 }
 
 
-int twwwcb(struct MHD_Connection *connection, const char *url, const char *method, const char *upload_data, size_t *upload_data_size, const char **substrings, size_t substrings_c, void *userdata)
-{
-	printf("got request, method: %s, url: %s\n", method, url);
-	for (int i = 0; i < substrings_c; i++) {
-		printf("substring: %s\n", substrings[i]);
-	}
-	return MHD_NO;
-}
+// int twwwcb(struct MHD_Connection *connection, const char *url, const char *method, const char *upload_data, size_t *upload_data_size, const char **substrings, size_t substrings_c, void *userdata)
+// {
+// 	printf("got request, method: %s, url: %s\n", method, url);
+// 	for (int i = 0; i < substrings_c; i++) {
+// 		printf("substring: %s\n", substrings[i]);
+// 	}
+// 	return MHD_NO;
+// }
 
 int main(int argc, char *argv[])
 {
 	/* parse options */
 	IF_R(opt_init(opt_all, NULL, NULL, NULL) || opt_parse(argc, argv), EXIT_FAILURE);
 
-	CRIT_IF_R(httpd_register_url(NULL, "/slot/[0-9]+", twwwcb, NULL), 1, "failed to register");
-	CRIT_IF_R(httpd_register_url(NULL, "/here/test", twwwcb, NULL), 1, "failed to register");
+	CRIT_IF_R(httpd_register_websocket_url("/slot/[0-9]+", NULL), 1, "failed to register");
 
 	/* basic initialization */
 	signal(SIGINT, p_exit);
