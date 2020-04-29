@@ -43,7 +43,8 @@ int p_init(void)
 	spi_open(&device, &master, 0);
 
 	/* start http server */
-	CRIT_IF_R(httpd_init(NULL, opt_get_int('P'), opt_get('D')), -1, "unable to start httpd server");
+	CRIT_IF_R(httpd_init(), -1, "failed to initialize http server");
+	CRIT_IF_R(httpd_start(NULL, opt_get_int('P'), opt_get('D')), -1, "unable to start httpd server");
 
 	return 0;
 }
@@ -59,10 +60,23 @@ void p_exit(int signum)
 	exit(EXIT_SUCCESS);
 }
 
+
+int twwwcb(struct MHD_Connection *connection, const char *url, const char *method, const char *upload_data, size_t *upload_data_size, const char **substrings, size_t substrings_c, void *userdata)
+{
+	printf("got request, method: %s, url: %s\n", method, url);
+	for (int i = 0; i < substrings_c; i++) {
+		printf("substring: %s\n", substrings[i]);
+	}
+	return MHD_NO;
+}
+
 int main(int argc, char *argv[])
 {
 	/* parse options */
 	IF_R(opt_init(opt_all, NULL, NULL, NULL) || opt_parse(argc, argv), EXIT_FAILURE);
+
+	CRIT_IF_R(httpd_register_url(NULL, "/slot/[0-9]+", twwwcb, NULL), 1, "failed to register");
+	CRIT_IF_R(httpd_register_url(NULL, "/here/test", twwwcb, NULL), 1, "failed to register");
 
 	/* basic initialization */
 	signal(SIGINT, p_exit);

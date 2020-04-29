@@ -2,7 +2,7 @@
 TARGET = OPI
 DEBUG = 1
 USE = GPIO SPI LOG LOG_COLORS
-LDFLAGS = -lmicrohttpd -lb64 -lcrypto
+LDFLAGS = -lmicrohttpd -lb64 -lcrypto -lpcre
 DEFINES = SLOT_COUNT=1
 
 # init
