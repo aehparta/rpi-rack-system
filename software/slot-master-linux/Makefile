@@ -11,7 +11,7 @@ include $(LIBE_PATH)/init.mk
 # our own sources etc
 BUILD_BINS = racksm
 PROGRAM_BIN = racksm
-racksm_SRC = main.c slot.c opt.c httpd.c $(libe_SRC)
+racksm_SRC = main.c slot.c opt.c httpd.c ws.c $(libe_SRC)
 
 # build
 include $(LIBE_PATH)/build.mk

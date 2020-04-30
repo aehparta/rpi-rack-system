@@ -7,6 +7,7 @@
 #include "slot.h"
 #include "opt.h"
 #include "httpd.h"
+#include "ws.h"
 
 
 #define SPI_FREQ            400000
@@ -61,21 +62,37 @@ void p_exit(int signum)
 }
 
 
-// int twwwcb(struct MHD_Connection *connection, const char *url, const char *method, const char *upload_data, size_t *upload_data_size, const char **substrings, size_t substrings_c, void *userdata)
-// {
-// 	printf("got request, method: %s, url: %s\n", method, url);
-// 	for (int i = 0; i < substrings_c; i++) {
-// 		printf("substring: %s\n", substrings[i]);
-// 	}
-// 	return MHD_NO;
-// }
+int twwwcb(struct MHD_Connection *connection, const char *url, const char *method, const char *upload_data, size_t *upload_data_size, const char **substrings, size_t substrings_c, void *userdata)
+{
+	char data[1024];
+
+	sprintf(data, "got request, method: %s, url: %s\n", method, url);
+	for (int i = 0; i < substrings_c; i++) {
+		sprintf(data + strlen(data), "substring: %s\n", substrings[i]);
+	}
+
+	printf("%s", data);
+
+	struct MHD_Response *response = MHD_create_response_from_buffer(strlen(data), data, MHD_RESPMEM_MUST_COPY);
+	MHD_add_response_header(response, "Content-Type", "text/html; charset=utf-8");
+	int err = MHD_queue_response(connection, 200, response);
+	MHD_destroy_response(response);
+
+	return err;
+}
+
+int p_ws_recv(int fd, const char *url, void *data, size_t size, void *userdata)
+{
+	return 0;
+}
 
 int main(int argc, char *argv[])
 {
 	/* parse options */
 	IF_R(opt_init(opt_all, NULL, NULL, NULL) || opt_parse(argc, argv), EXIT_FAILURE);
 
-	CRIT_IF_R(httpd_register_websocket_url("/slot/[0-9]+", NULL), 1, "failed to register");
+	CRIT_IF_R(ws_register_url("/slot/[0-9]+$", NULL), 1, "failed to register");
+	CRIT_IF_R(httpd_register_url(NULL, "/here/([a-z]+)/([0-9]+)/?$", twwwcb, NULL), 1, "failed to register");
 
 	/* basic initialization */
 	signal(SIGINT, p_exit);
