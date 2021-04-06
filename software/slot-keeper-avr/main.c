@@ -6,6 +6,24 @@
 
 extern void asm_main(void);
 
+/* AVR <-> holder
+ * PC0 = PI shutdown
+ * PC1 = PI power off
+ * PC2 = holder card inserted (low, otherwise floating)
+ * PC3 = PI heart beep
+ * PD4 = LED R
+ * PD5 = LED G
+ * PD6 = LED B
+ * PD7 = BUTTON (has pull-up)
+ */
+
+#define CARD_INSERTED GPIOC2
+
+#define LED_R GPIOD4
+#define LED_G GPIOD5
+#define LED_B GPIOD6
+#define BUTTON GPIOD7
+
 int p_init(void)
 {
 	/* library initializations */
@@ -22,12 +40,47 @@ int p_init(void)
 	// UCSR0B |= (1 << RXEN0) | (1 << RXCIE0);
 	UCSR0B |= (1 << RXEN0);
 
+	/* LEDs */
+	gpio_output(LED_R);
+	gpio_high(LED_R);
+	os_delay_ms(500);
+	gpio_low(LED_R);
+	gpio_output(LED_G);
+	gpio_high(LED_G);
+	os_delay_ms(500);
+	gpio_low(LED_G);
+	gpio_output(LED_B);
+	gpio_high(LED_B);
+	os_delay_ms(500);
+	gpio_low(LED_B);
+
+	/* button */
+	gpio_input(BUTTON);
+
+	/* card inserted detection (floating so enable internal pull-up) */
+	gpio_input(CARD_INSERTED);
+	gpio_high(CARD_INSERTED);
+
+	/* adc reference voltage to internal 1.1 V, adjust result left and channel 7 */
+	ADMUX = (1 << REFS1) | (1 << REFS0) | (1 << ADLAR) | 0x07;
+	/* enable adc, start first conversion and set clock prescaler to full 128 */
+	ADCSRA = (1 << ADEN) | (1 << ADSC) | (1 << ADIF) | 0x03;
+	/* start first conversion */
+	ADCSRA |= (1 << ADSC);
+
 	return 0;
 }
 
 int main(void)
 {
 	ERROR_IF_R(p_init(), -1, "base initialization failed");
+	// while (1) {
+	// 	if (gpio_read(BUTTON)) {
+	// 		gpio_low(LED_B);
+	// 	} else {
+	// 		gpio_high(LED_B);
+	// 	}
+	// }
 	asm_main();
 	return 0;
 }

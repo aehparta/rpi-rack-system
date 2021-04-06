@@ -1,5 +1,5 @@
 
-TARGET = OPI
+TARGET = RPI
 DEBUG = 1
 USE = GPIO SPI LOG LOG_COLORS
 LDFLAGS = -lmicrohttpd -lb64 -lcrypto -lpcre

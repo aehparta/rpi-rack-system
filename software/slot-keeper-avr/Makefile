@@ -8,7 +8,9 @@ USE = GPIO LOG NVM
 DEFINES = LOG_BAUD=38400
 
 # avrdude
-AVRDUDE_PROGRAMMER = linuxgpio
+AVRDUDE_PROGRAMMER = linuxspi
+AVRDUDE_PORT = /dev/spidev0.0
+AVRDUDE_SUDO = 1
 
 # init
 include $(LIBE_PATH)/init.mk

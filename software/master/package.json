@@ -1,0 +1,17 @@
+{
+  "name": "rack-master",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "app": "node main.js"
+  },
+  "keywords": [],
+  "author": "Antti Partanen <aehparta@iki.fi>",
+  "license": "MIT",
+  "dependencies": {
+    "onoff": "^6.0.1",
+    "socket.io": "^4.0.1",
+    "spi-device": "^3.1.0",
+    "spi-node": "^3.0.1"
+  }
+}

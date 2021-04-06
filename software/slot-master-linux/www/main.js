@@ -1,6 +1,6 @@
 var slot0 = {
-	host: 'pl500w.lan',
-	port: 80,
+	host: 'rack.lan',
+	port: 8080,
 	basePort: 2000
 };
 var sn = 0;
