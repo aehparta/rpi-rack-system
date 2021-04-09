@@ -6,10 +6,62 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="current"><span id="current-value">0</span> A</div>
-    <div id="terminal"></div>
-    <script src="socket.io/socket.io.js"></script>
+    <nav>
+      <button view="#overview" class="selected">Overview</button>
+      <button view="#slot-0" class="led green">Master</button>
+      <button view="#slot-1" class="led red">Slot #1</button>
+      <button view="#slot-2" class="led">Slot #2</button>
+      <button view="#slot-3" class="led">Slot #3</button>
+      <button view="#slot-4" class="led">Slot #4</button>
+      <button view="#slot-5" class="led">Slot #5</button>
+      <button view="#slot-6" class="led">Slot #6</button>
+      <button view="#slot-7" class="led">Slot #7</button>
+      <button view="#slot-8" class="led">Slot #8</button>
+      <button view="#slot-9" class="led">Slot #9</button>
+      <button view="#slot-10" class="led">Slot #10</button>
+      <button view="#slot-11" class="led">Slot #11</button>
+    </nav>
+    <main>
+      <div id="overview">
+        <div class="panel">
+          <div class="widget">
+            <div class="measurement"><span class="U">0</span> V</div>
+          </div>
+          <div class="widget">
+            <div class="measurement"><span class="I">0</span> A</div>
+          </div>
+          <div class="widget">
+            <div class="measurement"><span class="P">0</span> W</div>
+          </div>
+        </div>
+      </div>
+      <div id="terminal"></div>
+      <template id="template-slot">
+        <div class="slot">
+          <input class="label" />
+          <div class="panel">
+            <div class="widget">
+              <button class="toggle on led green">Power</button>
+            </div>
+            <div class="widget">
+              <div class="measurement"><span class="U">0</span> V</div>
+            </div>
+            <div class="widget">
+              <div class="measurement"><span class="I">0</span> A</div>
+            </div>
+            <div class="widget">
+              <div class="measurement"><span class="P">0</span> W</div>
+            </div>
+            <div class="widget">
+              <button class="toggle led orange">togLed</button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </main>
+    <script src="jquery-3.6.0.min.js"></script>
     <script src="xterm.js"></script>
+    <script src="socket.io/socket.io.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

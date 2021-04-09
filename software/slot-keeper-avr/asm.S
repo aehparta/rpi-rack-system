@@ -60,8 +60,8 @@ asm_main:
     ldi yl, 0x00
     st Y, zero
 
-    ldi status_1, 0x5a
-    ldi status_2, 0x17
+    ldi status_1, 0x00
+    ldi status_2, 0x00
 
     ; enable interrupts 
     sei
@@ -75,7 +75,6 @@ adc_handler:
     lds tmp, ADCSRA
     sbrs tmp, ADIF
     rjmp adc_handler_end
-    lds status_1, ADCL
     lds status_2, ADCH
     ; clear interrupt and start next conversion
     ori tmp, 0x50
@@ -90,9 +89,8 @@ button_handler:
     sbi _SFR_IO_ADDR(PORTD), 6
 button_handler_end:
 
-
-uart_rx_handler:
     ; check if new data from uart has been received
+uart_rx_handler:
     lds tmp, UCSR0A
     sbrs tmp, RXC0
     rjmp uart_rx_handler_end
