@@ -182,6 +182,7 @@ const readSpi = (slotId) => {
 
 readSpi(0);
 
+/* update measurements for each slot periodically */
 setInterval(() => {
   slots.forEach((slot, slotId) => {
     const U = slot.U / slot.count;
