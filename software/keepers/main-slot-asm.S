@@ -60,7 +60,7 @@ asm_main:
     ldi yl, 0x00
     st Y, zero
 
-    ldi status_1, 0x00
+    ldi status_1, 0x80
     ldi status_2, 0x00
 
     ; enable interrupts 
@@ -69,6 +69,13 @@ asm_main:
     ; loop here forevah!
 main_loop:
     wdr ; watchdog reset
+
+    ; check card inserted
+card_inserted:
+    sbic _SFR_IO_ADDR(PINC), 2
+    andi status_1, ~0x40
+    sbis _SFR_IO_ADDR(PINC), 2
+    ori status_1, 0x40
 
     ; read adc
 adc_handler:

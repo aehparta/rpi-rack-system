@@ -16,10 +16,11 @@ AVRDUDE_SUDO = 1
 include $(LIBE_PATH)/init.mk
 
 # our own sources etc
-BUILD_BINS = test
-PROGRAM_BIN = test
-test_SRC = main.c $(libe_SRC)
-test_ASRC = asm.S
+BUILD_BINS = keeper-slot keeper-fans
+PROGRAM_BIN = keeper-slot
+keeper-slot_SRC = main-slot.c $(libe_SRC)
+keeper-slot_ASRC = main-slot-asm.S
+keeper-fans_SRC = main-fans.c $(libe_SRC)
 
 # build
 include $(LIBE_PATH)/build.mk
