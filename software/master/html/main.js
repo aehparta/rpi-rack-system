@@ -34,6 +34,17 @@ $(document).ready(() => {
     }
   });
 
+  $('body').on('click', 'button.power', (e) => {
+    const slot = slots[Number($(e.target).attr('slot'))];
+    if (slot) {
+      socket.emit(
+        'terminal',
+        slot.id,
+        $(e.target).hasClass('on') ? '\5' : '\4'
+      );
+    }
+  });
+
   /* slots array */
   const slots = [];
 
@@ -46,7 +57,7 @@ $(document).ready(() => {
   term.open(document.getElementById('terminal'));
 
   term.onKey((event) => {
-    socket.emit('terminal', '0', event.key);
+    socket.emit('terminal', 0, event.key);
   });
 
   /* connect socket.io to server */
@@ -55,15 +66,19 @@ $(document).ready(() => {
   socket.on('slots', (data) => {
     const template = $('#template-slot').html();
     for (let slotId = 0; slotId < data.length; slotId++) {
-      slots.push(data[slotId]);
-      $('main').prepend($(template).attr('id', `slot-${slotId}`));
-      $(`#slot-${slotId} .label`).val(data[slotId].label);
-      $(`#slot-${slotId}`).attr('slot', slotId);
-      if (slotId === 0) {
-        $(`#slot-${slotId} .master-hidden`).hide();
+      const slot = data[slotId];
+      slots.push(slot);
+      $('main').prepend($(template).attr('id', `slot-${slot.id}`));
+      $(`#slot-${slot.id}`).attr('slot', slot.id);
+      $(`#slot-${slot.id} .slot-id-needed`).attr('slot', slot.id);
+      $(`#slot-${slot.id} .label`).val(slot.label);
+      if (slot.id === 0) {
+        $(`#slot-${slot.id} .master-hidden`).hide();
       }
+      slotUpdate(slot);
     }
   });
+
   socket.on('terminal', (slotId, data) => {
     slots[slotId].lastlog += data;
     if (slotId === currentSlotId) {
@@ -76,9 +91,7 @@ $(document).ready(() => {
       ...status,
     };
     const slot = slots[slotId];
-    $(`#slot-${slot.id} .measurement .U`).text((slot.U || 0).toFixed(2));
-    $(`#slot-${slot.id} .measurement .I`).text((slot.I || 0).toFixed(3));
-    $(`#slot-${slot.id} .measurement .P`).text((slot.P || 0).toFixed(1));
+    slotUpdate(slot);
   });
 
   setInterval(() => {
@@ -89,4 +102,35 @@ $(document).ready(() => {
     $(`#overview .measurement .I`).text(I.toFixed(3));
     $(`#overview .measurement .P`).text(P.toFixed(1));
   }, 1000);
+
+  const slotUpdate = (slot) => {
+    $(`button[view="#slot-${slot.id}"]`).removeClass([
+      'error',
+      'green',
+      'red',
+      'dark',
+    ]);
+    $(`#slot-${slot.id} .power`).removeClass(['on', 'dark']);
+
+    if (!slot.ok) {
+      $(`button[view="#slot-${slot.id}"]`).addClass(['error', 'red']);
+    } else if (slot.hasCard) {
+      if (slot.powered) {
+        $(`button[view="#slot-${slot.id}"]`).addClass('green');
+        $(`#slot-${slot.id} button`).prop('disabled', false);
+        $(`#slot-${slot.id} .power`).addClass('on');
+        if (slot.id === 0) {
+          $(`#slot-${slot.id} .power`).prop('disabled', true);
+        }
+      }
+    } else {
+      $(`button[view="#slot-${slot.id}"]`).addClass('dark');
+      $(`#slot-${slot.id} .power`).addClass('dark');
+      $(`#slot-${slot.id} button`).prop('disabled', true);
+    }
+
+    $(`#slot-${slot.id} .measurement .U`).text((slot.U || 0).toFixed(2));
+    $(`#slot-${slot.id} .measurement .I`).text((slot.I || 0).toFixed(3));
+    $(`#slot-${slot.id} .measurement .P`).text((slot.P || 0).toFixed(1));
+  };
 });

@@ -29,10 +29,10 @@ const transfer = (slotId, data, callback) => {
   select(slotId, () => {
     const buffer = [
       {
-        sendBuffer: Buffer.concat([data], 10),
-        receiveBuffer: Buffer.alloc(10),
-        byteLength: 10,
-        speedHz: 8e5,
+        sendBuffer: data,
+        receiveBuffer: Buffer.alloc(data.length),
+        byteLength: data.length,
+        speedHz: 7e5,
       },
     ];
     spiDevice.transfer(buffer, err => {

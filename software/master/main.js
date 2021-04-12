@@ -34,7 +34,7 @@ const httpFileServe = (request, response, filename) => {
   });
 };
 
-const httpResponse404 = response => {
+const httpResponse404 = (response) => {
   response.writeHead(404);
   return response.end('File not found');
 };
@@ -48,21 +48,26 @@ http.listen(config.port, config.bind);
 
 const io = require('socket.io')(http);
 
-io.sockets.on('connection', socket => {
+io.sockets.on('connection', (socket) => {
   socket.on('terminal', (slotId, data) => {
     const slot = slots[Number(slotId)];
     if (slot !== undefined) {
-      /* we are assuming here that data is send in less than 8 characters at a time */
-      slot.inputQueue.push(Buffer.from(data.padEnd(8, '\0')));
+      Buffer.from(data).forEach((value) => {
+        // console.log(value);
+        slot.inputQueue.push(value);
+      });
     }
   });
   socket.emit(
     'slots',
-    slots.map(slot => ({
+    slots.map((slot) => ({
       id: slot.id,
       label: slot.label,
       ok: slot.ok,
       hasCard: slot.hasCard,
+      powered: slot.powered,
+      poweredDefault: slot.poweredDefault,
+      statusRaw: slot.status,
       lastlog: slot.lastlog.join(''),
     }))
   );
@@ -70,11 +75,20 @@ io.sockets.on('connection', socket => {
 
 /* update measurements for each slot periodically */
 setInterval(() => {
-  slots.forEach(slot => {
+  slots.forEach((slot) => {
     const U = slot.U / slot.count;
     const I = slot.I / slot.count / 1000;
     const P = U * I;
-    io.emit('status', slot.id, {U, I, P});
+    io.emit('status', slot.id, {
+      U,
+      I,
+      P,
+      ok: slot.ok,
+      hasCard: slot.hasCard,
+      powered: slot.powered,
+      poweredDefault: slot.poweredDefault,
+      statusRaw: slot.status,
+    });
     slot.U = 0;
     slot.I = 0;
     slot.P = P;
@@ -82,10 +96,10 @@ setInterval(() => {
   });
 }, 500);
 
-const upkeep = slot => {
-  slot.read(data => {
+const upkeep = (slot) => {
+  slot.transfer((data) => {
     io.emit('terminal', slot.id, data);
-    upkeep(slots[slot.id] !== undefined ? slots[slot.id] : slots[0]);
+    upkeep(slots[slot.id + 1] !== undefined ? slots[slot.id + 1] : slots[0]);
   });
 };
 upkeep(slots[0]);

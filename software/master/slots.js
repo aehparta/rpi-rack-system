@@ -1,19 +1,22 @@
-const {spi} = require('./io');
+const { spi } = require('./io');
 const config = require('./config');
 
 const slots = [];
 
-const slotRead = (slotId, callback) => {
+const slotTransfer = (slotId, callback) => {
   const slot = slots[slotId];
   const sendBuffer = Buffer.concat(
-    [Buffer.from([0x01, 0x02]), slot.inputQueue.pop() || Buffer.from([])],
-    10
+    [Buffer.from([0x01, 0x02]), Buffer.from([slot.inputQueue.pop() || 0])],
+    slot.hasCard ? 16 : 3
   );
-  spi.transfer(slotId, sendBuffer, data => {
+  spi.transfer(slotId, sendBuffer, (data) => {
+    slot.status = data[1];
     slot.ok = data[1] & 0x80 ? true : false;
     slot.hasCard = data[1] & 0x40 ? true : false;
+    slot.powered = data[1] & 0x10 ? true : false;
+    slot.poweredDefault = data[1] & 0x01 ? true : false;
     slot.U += 15.6;
-    slot.I += data[2] >= 2 ? (data[2] - 2) * 8.2 : 0;
+    slot.I += slot.powered && data[2] >= 2 ? (data[2] - 2) * 8.2 : 0;
     slot.count++;
 
     let str = '';
@@ -24,7 +27,7 @@ const slotRead = (slotId, callback) => {
       str = Buffer.from(noInvalids).toString();
       /* append to log */
       const lastlog = slots[slotId].lastlog;
-      str.split(/(?=\n)/g).forEach(part => {
+      str.split(/(?=\n)/g).forEach((part) => {
         if (lastlog[lastlog.length - 1].slice(-1) !== '\n') {
           lastlog[lastlog.length - 1] += part;
         } else {
@@ -41,9 +44,10 @@ const slotRead = (slotId, callback) => {
   });
 };
 
-const check = callback => {
-  const slotCheck = slot => {
-    spi.transfer(slot.id, Buffer.from([0x01, 0x02]), data => {
+const check = (callback) => {
+  const slotCheck = (slot) => {
+    spi.transfer(slot.id, Buffer.from([0x01, 0x00]), (data) => {
+      slots[slot.id].statusRaw = data[1];
       slots[slot.id].ok = data[1] & 0x80 ? true : false;
       slots[slot.id].hasCard = data[1] & 0x40 ? true : false;
       slots[slot.id + 1] !== undefined
@@ -55,7 +59,7 @@ const check = callback => {
 };
 
 const debugPrint = () => {
-  slots.forEach(slot => {
+  slots.forEach((slot) => {
     if (slot.ok) {
       console.log(
         ` - ${slot.label} (#${slot.id}): OK, ${
@@ -63,7 +67,7 @@ const debugPrint = () => {
         }`
       );
     } else {
-      console.log(` - slot #${slot.id}: ERROR`);
+      console.log(` - slot #${slot.id}: ERROR (status raw: ${slot.statusRaw})`);
     }
   });
 };
@@ -71,12 +75,12 @@ const debugPrint = () => {
 module.exports = {
   check,
   debugPrint,
-  ok: () => slots.filter(slot => slot.ok),
-  hasCard: () => slots.filter(slot => slot.hasCard),
-  error: () => slots.filter(slot => !slot.ok),
-  filter: cb => slots.filter(cb),
-  forEach: cb => slots.forEach(cb),
-  map: cb => slots.map(cb),
+  ok: () => slots.filter((slot) => slot.ok),
+  hasCard: () => slots.filter((slot) => slot.hasCard),
+  error: () => slots.filter((slot) => !slot.ok),
+  filter: (cb) => slots.filter(cb),
+  forEach: (cb) => slots.forEach(cb),
+  map: (cb) => slots.map(cb),
   [Symbol.iterator]: () => {
     let i = 0;
     return {
@@ -102,12 +106,15 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
     P: 0,
     count: 0,
 
-    read: callback => {
-      slotRead(slotId, callback);
+    select: (callback) => {
+      spi.select(slotId, callback);
+    },
+    transfer: (callback) => {
+      slotTransfer(slotId, callback);
     },
   });
 }
 
-slots.forEach(slot => {
+slots.forEach((slot) => {
   module.exports[slot.id] = slot;
 });

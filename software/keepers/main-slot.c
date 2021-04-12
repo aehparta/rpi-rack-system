@@ -1,5 +1,6 @@
 /*
- * Fuses: -U lfuse:w:0xde:m -U hfuse:w:0xd9:m -U efuse:w:0xff:m
+ * Use: avrdude -c linuxspi -p atmega328p -P /dev/spidev0.0 -b 100000
+ * Fuses: -U lfuse:w:0xde:m -U hfuse:w:0xd1:m -U efuse:w:0xff:m
  */
 
 #include <libe/libe.h>
@@ -7,6 +8,7 @@
 extern void asm_main(void);
 
 /* AVR <-> holder
+ * PB0 = Power
  * PC0 = PI shutdown
  * PC1 = PI power off
  * PC2 = holder card inserted (low, otherwise floating)
@@ -16,6 +18,8 @@ extern void asm_main(void);
  * PD6 = LED B
  * PD7 = BUTTON (has pull-up)
  */
+
+#define POWER GPIOB0
 
 #define CARD_INSERTED GPIOC2
 
@@ -30,6 +34,18 @@ int p_init(void)
 	os_init();
 	log_init();
 	nvm_init(NULL, 0);
+
+	/* read slot number and defaults */
+	uint8_t slot_nr = nvm_read_byte((uint8_t *)0, 0);
+	uint8_t default_status = nvm_read_byte((uint8_t *)1, 0);
+	gpio_output(POWER);
+	if (default_status & 1 || slot_nr == 0) {
+		/* on as default */
+		gpio_high(POWER);
+	} else {
+		/* off as default */
+		gpio_low(POWER);
+	}
 
 	/* enable SPI as slave */
 	gpio_output(GPIOB4); /* MISO must be set as output */

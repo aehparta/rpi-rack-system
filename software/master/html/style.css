@@ -62,6 +62,10 @@ button:focus {
   outline: none;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 button.selected,
 button.toggle.on {
   color: #ffffff;
@@ -73,10 +77,19 @@ button.led {
 }
 
 button.led:before {
-  content: "⬤";
+  content: '⬤';
   margin: 0 0.5em;
   color: #c0c0c0;
   text-shadow: 0 0 0.1em #000000;
+}
+
+button.led.dark {
+  color: #303030;
+}
+
+button.led.dark:before {
+  color: #303030;
+  text-shadow: 0 0 0.05em #000000;
 }
 
 button.led.red:not(.toggle):before,
@@ -107,6 +120,11 @@ button.led.orange:not(.toggle):before,
 button.led.orange.toggle.on:before {
   color: #ffa000;
   text-shadow: 0 0 0.2em #000000;
+}
+
+button.error {
+  color: #ff7070;
+  background: #700000;
 }
 
 .slot {

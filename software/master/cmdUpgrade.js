@@ -1,4 +1,4 @@
-const {spawn} = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const slots = require('./slots');
 
@@ -20,49 +20,56 @@ console.log(' - binaries OK');
 console.log('Checking slots:');
 slots.check(() => {
   slots.debugPrint();
+  console.log('Starting upgrade:');
+  console.log('');
+
+  const slotId = process.argv?.[2] ? Number(process.argv[2]) : undefined;
+  if (
+    slotId !== undefined &&
+    (slotId < 0 || slotId >= slots.length || Number.isNaN(slotId))
+  ) {
+    console.error(`Invalid slot #${slotId}`);
+    process.exit(1);
+  }
+
+  upgrade(slotId || 0, slotId !== undefined);
 });
 
-// console.log("Starting upgrade:");
-// console.log("");
-// const upgrade = (slotId) => {
-//   const slot = slots[slotId];
-//   if (slot === undefined) {
-//     return;
-//   }
-//   if (!slot.ok) {
-//     upgrade(slotId + 1);
-//     return;
-//   }
+const upgrade = (slotId, single = false) => {
+  const slot = slots[slotId];
+  if (slot === undefined) {
+    return;
+  }
+  if (!slot.ok && !single) {
+    upgrade(slotId + 1);
+    return;
+  }
 
-//   slot.select();
-//   console.log(`### slot #${slot.id}: upgrading ###`);
-
-//   const args = [
-//     "avrdude",
-//     "-q",
-//     "-p",
-//     "atmega328p",
-//     "-c",
-//     "linuxspi",
-//     "-P",
-//     "/dev/spidev0.0",
-//     "-U",
-//     `flash:w:${binaryFileKeeperSlot}`,
-//   ];
-//   const cmd = spawn("sudo", args);
-
-//   cmd.stdout.on("data", (data) => {
-//     process.stdout.write(data);
-//   });
-//   cmd.stderr.on("data", (data) => {
-//     process.stderr.write(data);
-//   });
-
-//   cmd.on("close", (code) => {
-//     if (code !== 0) {
-//       process.exit(1);
-//     }
-//     upgrade(slotId + 1);
-//   });
-// };
-// upgrade(0);
+  slot.select(() => {
+    console.log(`### slot #${slot.id}: upgrading ###`);
+    const args = [
+      'avrdude',
+      '-q',
+      '-q',
+      '-p',
+      'atmega328p',
+      '-c',
+      'linuxspi',
+      '-P',
+      '/dev/spidev0.0',
+      '-U',
+      `flash:w:${binaryFileKeeperSlot}`,
+    ];
+    const cmd = spawn('sudo', args);
+    cmd.stdout.on('data', (data) => process.stdout.write(data));
+    cmd.stderr.on('data', (data) => process.stderr.write(data));
+    cmd.on('close', (code) => {
+      if (code !== 0) {
+        process.exit(1);
+      }
+      if (!single) {
+        upgrade(slotId + 1);
+      }
+    });
+  });
+};
