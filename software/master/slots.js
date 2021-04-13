@@ -5,24 +5,36 @@ const slots = [];
 
 const slotTransfer = (slotId, callback) => {
   const slot = slots[slotId];
-  const sendBuffer = Buffer.concat(
-    [Buffer.from([0x01, 0x02]), Buffer.from([slot.inputQueue.pop() || 0])],
-    slot.hasCard ? 16 : 3
-  );
-  spi.transfer(slotId, sendBuffer, (data) => {
-    slot.status = data[1];
-    slot.ok = data[1] & 0x80 ? true : false;
-    slot.hasCard = slot.ok && data[1] & 0x40 ? true : false;
-    slot.powered = slot.ok && data[1] & 0x10 ? true : false;
-    slot.poweredDefault = slot.ok && data[1] & 0x01 ? true : false;
-    slot.U += 15.6;
-    slot.I += slot.powered && data[2] >= 2 ? (data[2] - 2) * 8.2 : 0;
-    slot.count++;
+  const sendBuffer = Buffer.concat([
+    Buffer.from([slot.inputQueue.pop() || 0x11]),
+    Buffer.alloc(slot.hasCard ? 15 : 1, 0x11),
+  ]);
+  spi.transfer(slot.id, sendBuffer, (data) => {
+    const noInvalids = [];
+
+    data.forEach((ch) => {
+      if (slot?.lastByte === 0x11) {
+        slot.status = ch;
+        slot.ok = ch & 0x80 ? true : false;
+        slot.hasCard = slot.ok && ch & 0x40 ? true : false;
+        slot.powered = slot.ok && ch & 0x10 ? true : false;
+        slot.poweredDefault = slot.ok && ch & 0x01 ? true : false;
+        slot.lastByte = 0;
+      } else if (slot?.lastByte === 0x12) {
+        slot.I += slot.powered && ch >= 2 ? (ch - 2) * 8.2 : 0;
+        slot.Icount++;
+        slot.U += 15.6;
+        slot.Ucount++;
+        slot.lastByte = 0;
+      } else {
+        if (ch !== 0x11 && ch !== 0x12) {
+          noInvalids.push(ch);
+        }
+        slot.lastByte = ch;
+      }
+    });
 
     let str = '';
-    const noInvalids = data.filter(
-      (ch, index) => ch > 7 && index != 1 && index != 2
-    );
     if (noInvalids.length > 0) {
       str = Buffer.from(noInvalids).toString();
       /* append to log */
@@ -44,20 +56,6 @@ const slotTransfer = (slotId, callback) => {
   });
 };
 
-const check = (callback) => {
-  const slotCheck = (slot) => {
-    spi.transfer(slot.id, Buffer.from([0x01, 0x00]), (data) => {
-      slots[slot.id].statusRaw = data[1];
-      slots[slot.id].ok = data[1] & 0x80 ? true : false;
-      slots[slot.id].hasCard = data[1] & 0x40 ? true : false;
-      slots[slot.id + 1] !== undefined
-        ? slotCheck(slots[slot.id + 1])
-        : callback();
-    });
-  };
-  slotCheck(slots[0]);
-};
-
 const debugPrint = () => {
   slots.forEach((slot) => {
     if (slot.ok) {
@@ -73,7 +71,6 @@ const debugPrint = () => {
 };
 
 module.exports = {
-  check,
   debugPrint,
   ok: () => slots.filter((slot) => slot.ok),
   hasCard: () => slots.filter((slot) => slot.hasCard),
@@ -101,10 +98,11 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
 
     inputQueue: [],
     lastlog: [''],
-    I: 0,
     U: 0,
+    Ucount: 0,
+    I: 0,
+    Icount: 0,
     P: 0,
-    count: 0,
 
     select: (callback) => {
       spi.select(slotId, callback);

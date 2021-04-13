@@ -17,31 +17,9 @@ try {
 }
 console.log(' - binaries OK');
 
-console.log('Checking slots:');
-slots.check(() => {
-  slots.debugPrint();
-  console.log('Starting upgrade:');
-  console.log('');
-
-  const slotId = process.argv?.[2] ? Number(process.argv[2]) : undefined;
-  if (
-    slotId !== undefined &&
-    (slotId < 0 || slotId >= slots.length || Number.isNaN(slotId))
-  ) {
-    console.error(`Invalid slot #${slotId}`);
-    process.exit(1);
-  }
-
-  upgrade(slotId || 0, slotId !== undefined);
-});
-
 const upgrade = (slotId, single = false) => {
   const slot = slots[slotId];
   if (slot === undefined) {
-    return;
-  }
-  if (!slot.ok && !single) {
-    upgrade(slotId + 1);
     return;
   }
 
@@ -64,12 +42,24 @@ const upgrade = (slotId, single = false) => {
     cmd.stdout.on('data', (data) => process.stdout.write(data));
     cmd.stderr.on('data', (data) => process.stderr.write(data));
     cmd.on('close', (code) => {
-      if (code !== 0) {
-        process.exit(1);
-      }
+      code !== 0 && console.error(' - FAILED');
       if (!single) {
         upgrade(slotId + 1);
       }
     });
   });
 };
+
+console.log('Starting upgrade:');
+console.log('');
+
+const slotId = process.argv?.[2] ? Number(process.argv[2]) : undefined;
+if (
+  slotId !== undefined &&
+  (slotId < 0 || slotId >= slots.length || Number.isNaN(slotId))
+) {
+  console.error(`Invalid slot #${slotId}`);
+  process.exit(1);
+}
+
+upgrade(slotId || 0, slotId !== undefined);

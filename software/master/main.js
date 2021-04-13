@@ -76,8 +76,8 @@ io.sockets.on('connection', (socket) => {
 /* update measurements for each slot periodically */
 setInterval(() => {
   slots.forEach((slot) => {
-    const U = slot.U / slot.count;
-    const I = slot.I / slot.count / 1000;
+    const U = slot.U / slot.Ucount;
+    const I = slot.I / slot.Icount / 1000;
     const P = U * I;
     io.emit('status', slot.id, {
       U,
@@ -90,9 +90,10 @@ setInterval(() => {
       statusRaw: slot.status,
     });
     slot.U = 0;
+    slot.Ucount = 0;
     slot.I = 0;
+    slot.Icount = 0;
     slot.P = P;
-    slot.count = 0;
   });
 }, 500);
 

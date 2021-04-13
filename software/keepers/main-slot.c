@@ -69,6 +69,11 @@ int p_init(void)
 	gpio_high(LED_B);
 	os_delay_ms(500);
 	gpio_low(LED_B);
+	if (default_status & 1 || slot_nr == 0) {
+		gpio_high(LED_G);
+	} else {
+		gpio_high(LED_R);
+	}
 
 	/* button */
 	gpio_input(BUTTON);
@@ -83,6 +88,11 @@ int p_init(void)
 	ADCSRA = (1 << ADEN) | (1 << ADSC) | (1 << ADIF) | 0x03;
 	/* start first conversion */
 	ADCSRA |= (1 << ADSC);
+
+    /* timer 1 to 100Hz */
+    TCCR1A = 0x00;
+	OCR1A = F_CPU / 8 / 100;
+	TCCR1B = (1 << CS11) | (1 << WGM12);
 
 	return 0;
 }
