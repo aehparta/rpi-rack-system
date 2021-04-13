@@ -12,9 +12,9 @@ const slotTransfer = (slotId, callback) => {
   spi.transfer(slotId, sendBuffer, (data) => {
     slot.status = data[1];
     slot.ok = data[1] & 0x80 ? true : false;
-    slot.hasCard = data[1] & 0x40 ? true : false;
-    slot.powered = data[1] & 0x10 ? true : false;
-    slot.poweredDefault = data[1] & 0x01 ? true : false;
+    slot.hasCard = slot.ok && data[1] & 0x40 ? true : false;
+    slot.powered = slot.ok && data[1] & 0x10 ? true : false;
+    slot.poweredDefault = slot.ok && data[1] & 0x01 ? true : false;
     slot.U += 15.6;
     slot.I += slot.powered && data[2] >= 2 ? (data[2] - 2) * 8.2 : 0;
     slot.count++;

@@ -1,136 +1,92 @@
-(function ($) {
-  $.each(['show', 'hide'], function (i, ev) {
-    var el = $.fn[ev];
-    $.fn[ev] = function () {
-      this.trigger(ev);
-      return el.apply(this, arguments);
-    };
-  });
-})(jQuery);
+/* initialize terminal */
+const term = new Terminal({ cursorBlink: 'block' });
 
-$(document).ready(() => {
-  let currentSlotId = undefined;
+/* connect socket.io to server */
+const socket = io();
 
-  $('body').on('click', 'nav>button', (e) => {
-    $('nav>button').removeClass('selected');
-    $(e.target).addClass('selected');
-  });
-
-  $('body').on('click', 'button.toggle', (e) => {
-    $(e.target).toggleClass('on');
-  });
-
-  $('body').on('click', 'button[view]', (e) => {
-    const view = $(e.target).attr('view');
-    $(view).parent().children().hide();
-    $(view).show();
-    currentSlotId = undefined;
-    if (view.startsWith('#slot-')) {
-      currentSlotId = Number($(view).attr('slot'));
-      term.reset();
-      $('#terminal').show();
-      term.resize(80, 30);
-      term.write(slots[currentSlotId].lastlog);
-    }
-  });
-
-  $('body').on('click', 'button.power', (e) => {
-    const slot = slots[Number($(e.target).attr('slot'))];
-    if (slot) {
-      socket.emit(
-        'terminal',
-        slot.id,
-        $(e.target).hasClass('on') ? '\5' : '\4'
+/* initialize app */
+const app = new Vue({
+  el: '#app',
+  created() {
+    socket.on(
+      'slots',
+      (data) =>
+        (this.slots = data.map((slot) => ({
+          ...slot,
+          select: () => this.showSlot(slot.id),
+          powerToggle: () => this.slotPowerToggle(slot.id),
+        })))
+    );
+    socket.on('status', (id, status) => {
+      this.slots = this.slots.map((slot) =>
+        slot.id == id
+          ? {
+              ...slot,
+              ...status,
+            }
+          : slot
       );
-    }
-  });
-
-  /* slots array */
-  const slots = [];
-
-  /* initialize terminal */
-  const term = new Terminal({
-    cols: 40,
-    rows: 30,
-    cursorBlink: 'block',
-  });
-  term.open(document.getElementById('terminal'));
-
-  term.onKey((event) => {
-    socket.emit('terminal', 0, event.key);
-  });
-
-  /* connect socket.io to server */
-  const socket = io();
-
-  socket.on('slots', (data) => {
-    const template = $('#template-slot').html();
-    for (let slotId = 0; slotId < data.length; slotId++) {
-      const slot = data[slotId];
-      slots.push(slot);
-      $('main').prepend($(template).attr('id', `slot-${slot.id}`));
-      $(`#slot-${slot.id}`).attr('slot', slot.id);
-      $(`#slot-${slot.id} .slot-id-needed`).attr('slot', slot.id);
-      $(`#slot-${slot.id} .label`).val(slot.label);
-      if (slot.id === 0) {
-        $(`#slot-${slot.id} .master-hidden`).hide();
+      if (this.slot?.id === id) {
+        this.slot = this.slots[this.slot.id];
       }
-      slotUpdate(slot);
-    }
-  });
-
-  socket.on('terminal', (slotId, data) => {
-    slots[slotId].lastlog += data;
-    if (slotId === currentSlotId) {
-      term.write(data);
-    }
-  });
-  socket.on('status', (slotId, status) => {
-    slots[slotId] = {
-      ...slots[slotId],
-      ...status,
-    };
-    const slot = slots[slotId];
-    slotUpdate(slot);
-  });
-
-  setInterval(() => {
-    const U = slots[0].U || 0;
-    const I = slots.reduce((I, slot) => I + (slot.I || 0), 0);
-    const P = U * I;
-    $(`#overview .measurement .U`).text(U.toFixed(2));
-    $(`#overview .measurement .I`).text(I.toFixed(3));
-    $(`#overview .measurement .P`).text(P.toFixed(1));
-  }, 1000);
-
-  const slotUpdate = (slot) => {
-    $(`button[view="#slot-${slot.id}"]`).removeClass([
-      'error',
-      'green',
-      'red',
-      'dark',
-    ]);
-    $(`#slot-${slot.id} .power`).removeClass(['on', 'dark']);
-
-    if (!slot.ok) {
-      $(`button[view="#slot-${slot.id}"]`).addClass(['error', 'red']);
-    } else if (slot.hasCard) {
-      if (slot.powered) {
-        $(`button[view="#slot-${slot.id}"]`).addClass('green');
-        $(`#slot-${slot.id} button`).prop('disabled', false);
-        $(`#slot-${slot.id} .power`).addClass('on');
-        if (slot.id === 0) {
-          $(`#slot-${slot.id} .power`).prop('disabled', true);
-        }
+    });
+    socket.on('terminal', (id, data) => {
+      const slot = this.slots[id];
+      slot.lastlog += data;
+      if (id === this.slot?.id) {
+        term.write(data);
       }
-    } else {
-      $(`button[view="#slot-${slot.id}"]`).addClass('dark');
-      $(`#slot-${slot.id} .power`).addClass('dark');
-      $(`#slot-${slot.id} button`).prop('disabled', true);
-    }
-
-    $(`#slot-${slot.id} .measurement .U`).text((slot.U || 0).toFixed(2));
-    $(`#slot-${slot.id} .measurement .I`).text((slot.I || 0).toFixed(3));
-    $(`#slot-${slot.id} .measurement .P`).text((slot.P || 0).toFixed(1));
-  };
+    });
+    term.onKey((event) => {
+      socket.emit('terminal', this.slot.id, event.key);
+    });
+    setInterval(() => {
+      const U = this.slots[0].U || 0;
+      const I = this.slots.reduce((I, slot) => I + (slot.I || 0), 0);
+      this.overview = {
+        U,
+        I,
+        P: U * I,
+      };
+    }, 1000);
+  },
+  data: {
+    overview: { U: 0, I: 0, P: 0 },
+    slots: [],
+    slot: undefined,
+    view: 'overview',
+  },
+  methods: {
+    showSlot(id) {
+      /* if this slot is already selected */
+      if (id === this.slot?.id) {
+        return;
+      }
+      /* update data */
+      this.slots = this.slots.map((slot) => ({
+        ...slot,
+        selected: id === slot.id,
+      }));
+      this.slot = this.slots[id];
+      this.view = 'slot';
+      /* reset terminal after the view has rendered properly */
+      this.$nextTick(() => {
+        term.reset();
+        term.resize(80, 30);
+        term.write(this.slot.lastlog);
+      });
+    },
+    showOverview() {
+      if (this.slot) {
+        this.slot.selected = false;
+      }
+      this.slot = undefined;
+      this.view = 'overview';
+    },
+    slotPowerToggle(id) {
+      socket.emit('terminal', id, this.slots[id].powered ? '\4' : '\5');
+    },
+  },
 });
+
+term.open(document.getElementById('terminal'));
