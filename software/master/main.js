@@ -76,8 +76,8 @@ io.sockets.on('connection', (socket) => {
 /* update measurements for each slot periodically */
 setInterval(() => {
   slots.forEach((slot) => {
-    const U = slot.U / slot.Ucount;
-    const I = slot.I / slot.Icount / 1000;
+    const U = (slot.U / slot.Ucount) || 0;
+    const I = (slot.I / slot.Icount / 1000) || 0;
     const P = U * I;
     io.emit('status', slot.id, {
       U,
@@ -100,6 +100,7 @@ setInterval(() => {
 const upkeep = (slot) => {
   slot.transfer((data) => {
     io.emit('terminal', slot.id, data);
+    // upkeep(slot);
     upkeep(slots[slot.id + 1] !== undefined ? slots[slot.id + 1] : slots[0]);
   });
 };

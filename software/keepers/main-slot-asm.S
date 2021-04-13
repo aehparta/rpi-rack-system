@@ -39,25 +39,25 @@
 ; spi data received interrupt
 .global SPI_STC_vect
 SPI_STC_vect:
+    ; read incoming data
     in spi_reg_in, _SFR_IO_ADDR(SPDR)
-    ; if < 8
-    cpi spi_reg_in, 8
-    brsh process_spi_data
-    mov state_set, spi_reg_in
-    mov spi_reg_in, DC1
-process_spi_data:
     ; send incoming uart data
     ld spi_reg_out, Y
     out _SFR_IO_ADDR(SPDR), spi_reg_out
     ; if byte is zero, then skip incrementing Y
     cpse spi_reg_out, zero
-    ld spi_reg_out, Y+
+    st Y+, zero
     ; buffer is 0x0100-0x07ff, so check when Y flips to 0x0800
     sbrc yh, 3
     ldi yh, 0x01
-    ; if incoming command was not DC1 (device control 1), send to uart
+    ; check for incoming commands
+    cpi spi_reg_in, 8
+    brlo spi_is_command
     cpse spi_reg_in, DC1
     sts UDR0, spi_reg_in
+    reti
+spi_is_command:
+    mov state_set, spi_reg_in
     reti
 
 .global asm_main
@@ -72,11 +72,16 @@ asm_main:
     mov DC1, tmp
 
     ; initialize buffer pointers in X and Y
-    ldi xh, 0x02
+    ldi xh, 0x01
     ldi xl, 0x00
-    ldi yh, 0x02
+    ldi yh, 0x01
     ldi yl, 0x00
-    st Y, zero
+clear_buffer:
+    st Y+, zero
+    sbrs yh, 3
+    rjmp clear_buffer
+    ldi yh, 0x01
+    ldi yl, 0x00
 
     ; read  slot number from eeprom
     out _SFR_IO_ADDR(EEARH), zero
@@ -106,7 +111,10 @@ init_not_slot_zero:
     clr card_ok_counter
 
     ; raw current value read from ADC */
-    clr current_raw
+    ser current_raw
+
+    ; clear state set
+    clr state_set
 
     ; enable interrupts 
     sei
@@ -132,7 +140,9 @@ state_action:
     clr state_set
     rjmp state_action_end
 state_action_no_power:
-    cbi _SFR_IO_ADDR(PORTB), 0
+    ; double check to make sure we do not turn off power on slot zero
+    ; cpse slot_nr
+    ; cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
     sbi LED_PORT, LED_R_BIT
     andi state, ~0x10
@@ -150,7 +160,13 @@ card_detect_no:
     andi state, ~0x40
     dec card_ok_counter
     ; disable power if zero, card was removed
-    breq state_action_no_power
+    brne card_detect_end
+    ; double check to make sure we do not turn off power on slot zero
+    ; cpse slot_nr
+    ; cbi _SFR_IO_ADDR(PORTB), 0
+    cbi LED_PORT, LED_G_BIT
+    sbi LED_PORT, LED_R_BIT
+    andi state, ~0x10
 card_detect_end:
 
     ; read adc
@@ -159,6 +175,11 @@ adc_handler:
     sbrs tmp, ADIF
     rjmp adc_handler_end
     lds current_raw, ADCH
+    ; cannot send zero, set to 0xff if zero
+    cp current_raw, zero
+    brne adc_handler_not_zero
+    ser current_raw
+adc_handler_not_zero:
     ; clear interrupt and start next conversion
     ori tmp, 0x50
     sts ADCSRA, tmp
@@ -176,7 +197,8 @@ button_handler_end:
 timer_handler:
     sbis _SFR_IO_ADDR(TIFR1), OCF1A
     rjmp timer_handler_end
-    sbi _SFR_IO_ADDR(TIFR1), OCF1A
+    ldi tmp, 0x07
+    out _SFR_IO_ADDR(TIFR1), tmp
     ; put state and raw current into send queue
     ldi tmp, 0x11
     st X+, tmp
@@ -192,7 +214,6 @@ timer_handler:
     st X+, current_raw
     sbrc xh, 3
     ldi xh, 0x01
-    st X, zero
 timer_handler_end:
 
     ; check if new data from uart has been received
@@ -202,12 +223,11 @@ uart_rx_handler:
     rjmp uart_rx_handler_end
     ; receive byte from uart
     lds tmp, UDR0
+    cpse tmp, zero
     st X+, tmp
     ; buffer is 0x0100-0x07ff, so check when X flips to 0x0800
     sbrc xh, 3
     ldi xh, 0x01
-    ; save zero to current index so reading will know where to stop
-    st X, zero
 uart_rx_handler_end:
 
     rjmp main_loop

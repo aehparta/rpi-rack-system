@@ -89,10 +89,10 @@ int p_init(void)
 	/* start first conversion */
 	ADCSRA |= (1 << ADSC);
 
-    /* timer 1 to 100Hz */
+    /* timer 1 to 10Hz */
     TCCR1A = 0x00;
-	OCR1A = F_CPU / 8 / 100;
-	TCCR1B = (1 << CS11) | (1 << WGM12);
+	OCR1A = F_CPU / 256 / 10;
+	TCCR1B = (1 << CS12) | (1 << WGM12);
 
 	return 0;
 }
@@ -100,13 +100,6 @@ int p_init(void)
 int main(void)
 {
 	ERROR_IF_R(p_init(), -1, "base initialization failed");
-	// while (1) {
-	// 	if (gpio_read(BUTTON)) {
-	// 		gpio_low(LED_B);
-	// 	} else {
-	// 		gpio_high(LED_B);
-	// 	}
-	// }
 	asm_main();
 	return 0;
 }

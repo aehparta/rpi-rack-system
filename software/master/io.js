@@ -32,7 +32,7 @@ const transfer = (slotId, data, callback) => {
         sendBuffer: data,
         receiveBuffer: Buffer.alloc(data.length),
         byteLength: data.length,
-        speedHz: 7e5,
+        speedHz: 5e5,
       },
     ];
     spiDevice.transfer(buffer, err => {
