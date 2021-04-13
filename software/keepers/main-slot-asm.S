@@ -5,6 +5,7 @@
 #define one                 r2
 #define two                 r3
 
+#define spi_data_lock       r14
 #define DC1                 r15
 
 ; status etc
@@ -41,12 +42,15 @@
 SPI_STC_vect:
     ; read incoming data
     in spi_reg_in, _SFR_IO_ADDR(SPDR)
-    ; send incoming uart data
+    ; send incoming uart data or zero if locked
+    sbrs spi_data_lock, 0
     ld spi_reg_out, Y
     out _SFR_IO_ADDR(SPDR), spi_reg_out
     ; if byte is zero, then skip incrementing Y
     cpse spi_reg_out, zero
     st Y+, zero
+    ; always clear out reg
+    clr spi_reg_out
     ; buffer is 0x0100-0x07ff, so check when Y flips to 0x0800
     sbrc yh, 3
     ldi yh, 0x01
@@ -106,6 +110,11 @@ clear_buffer:
     brne init_not_slot_zero
     ori state, 0x11
 init_not_slot_zero:
+
+    ; spi interrupts related registers
+    clr spi_reg_in
+    clr spi_reg_out
+    clr spi_data_lock
 
     ; card disconnect detection timer
     clr card_ok_counter
@@ -199,6 +208,7 @@ timer_handler:
     rjmp timer_handler_end
     ldi tmp, 0x07
     out _SFR_IO_ADDR(TIFR1), tmp
+    or spi_data_lock, one
     ; put state and raw current into send queue
     ldi tmp, 0x11
     st X+, tmp
@@ -214,6 +224,7 @@ timer_handler:
     st X+, current_raw
     sbrc xh, 3
     ldi xh, 0x01
+    clr spi_data_lock
 timer_handler_end:
 
     ; check if new data from uart has been received

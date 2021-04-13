@@ -7,7 +7,7 @@ const slotTransfer = (slotId, callback) => {
   const slot = slots[slotId];
   const sendBuffer = Buffer.concat([
     Buffer.from([slot.inputQueue.pop() || 0x11]),
-    Buffer.alloc(slot.hasCard ? 15 : 15, 0x11),
+    Buffer.alloc(slot.hasCard ? 15 : 7, 0x11),
   ]);
   spi.transfer(slot.id, sendBuffer, (data) => {
     // console.log(sendBuffer, data);
@@ -31,7 +31,7 @@ const slotTransfer = (slotId, callback) => {
         slot.Ucount++;
         slot.lastByte = 0;
       } else {
-        if (ch !== 0x11 && ch !== 0x12) {
+        if (ch !== 0x11 && ch !== 0x12 && ch > 7) {
           noInvalids.push(ch);
         }
         slot.lastByte = ch;
