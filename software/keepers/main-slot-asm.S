@@ -14,6 +14,7 @@
 #define current_raw         r18
 #define state_set           r19
 #define card_ok_counter     r20
+#define button_pushed       r21
 
 ; constant registers used by interrupt routines
 ; these registers must not be used elsewhere
@@ -116,6 +117,9 @@ init_not_slot_zero:
     clr spi_reg_out
     clr spi_data_lock
 
+    ; button pushed counter
+    clr button_pushed
+
     ; card disconnect detection timer
     clr card_ok_counter
 
@@ -150,8 +154,8 @@ state_action:
     rjmp state_action_end
 state_action_no_power:
     ; double check to make sure we do not turn off power on slot zero
-    ; cpse slot_nr
-    ; cbi _SFR_IO_ADDR(PORTB), 0
+    cpse slot_nr,zero
+    cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
     sbi LED_PORT, LED_R_BIT
     andi state, ~0x10
@@ -171,8 +175,8 @@ card_detect_no:
     ; disable power if zero, card was removed
     brne card_detect_end
     ; double check to make sure we do not turn off power on slot zero
-    ; cpse slot_nr
-    ; cbi _SFR_IO_ADDR(PORTB), 0
+    cpse slot_nr, zero
+    cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
     sbi LED_PORT, LED_R_BIT
     andi state, ~0x10
@@ -193,14 +197,6 @@ adc_handler_not_zero:
     ori tmp, 0x50
     sts ADCSRA, tmp
 adc_handler_end:
-
-    ; check button
-button_handler:
-    cbi _SFR_IO_ADDR(PORTD), 6
-    sbic BUTTON_PORT, BUTTON_BIT
-    rjmp button_handler_end
-    sbi _SFR_IO_ADDR(PORTD), 6
-button_handler_end:
 
     ; timer 1, 100Hz
 timer_handler:
@@ -225,6 +221,31 @@ timer_handler:
     sbrc xh, 3
     ldi xh, 0x01
     clr spi_data_lock
+    ; check button (inside timer)
+button_handler:
+    sbis BUTTON_PORT, BUTTON_BIT
+    rjmp button_handler_pushed
+button_handler_not_pushed:
+    ; if button was not even down before
+    cpi button_pushed, 0
+    breq button_handler_end
+    ; check power state, if power is off, turn on using state_set
+    sbrc state, 4
+    rjmp button_handler_clear
+    ; turn power on only if this was short push, less than 500ms
+    cpi button_pushed, 5
+    brsh button_handler_clear
+    ldi state_set, 0x05
+button_handler_clear:
+    ser button_pushed
+button_handler_pushed:
+    inc button_pushed
+    ; if button has been pushed for 4 seconds, force power off using state_set
+    cpi button_pushed, 40
+    brne button_handler_end
+    ldi state_set, 0x04
+button_handler_end:
+    ;
 timer_handler_end:
 
     ; check if new data from uart has been received
