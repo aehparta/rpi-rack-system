@@ -1,14 +1,18 @@
 
 #include <avr/io.h>
 
+#define tmp0                r0
 #define zero                r1
 #define one                 r2
 #define two                 r3
 
+#define adc_c               r11
+#define adc_l               r12
+#define adc_h               r13
 #define spi_data_lock       r14
 #define DC1                 r15
 
-; status etc
+; state etc
 #define slot_nr             r16
 #define state               r17
 #define current_raw         r18
@@ -22,7 +26,7 @@
 #define spi_reg_in          r24
 
 ; don't use register higher than this, they are reserved
-#define tmp                 r25
+#define tmp1                r25
 
 ; button
 #define BUTTON_PORT         _SFR_IO_ADDR(PIND)
@@ -65,16 +69,37 @@ spi_is_command:
     mov state_set, spi_reg_in
     reti
 
+
+power_state_update:
+    ; enable/disable card power
+    sbrs state_set, 0
+    rjmp power_state_update_off
+power_state_update_on:
+    sbi _SFR_IO_ADDR(PORTB), 0
+    sbi LED_PORT, LED_G_BIT
+    cbi LED_PORT, LED_R_BIT
+    ori state, 0x10
+    clr state_set
+    ret
+power_state_update_off:
+    cbi _SFR_IO_ADDR(PORTB), 0
+    cbi LED_PORT, LED_G_BIT
+    sbi LED_PORT, LED_R_BIT
+    andi state, ~0x10
+    clr state_set
+    ret
+
+
 .global asm_main
 asm_main:
     ; initialize compare value registers
     clr zero
-    ldi tmp, 0x01
-    mov one, tmp
-    ldi tmp, 0x02
-    mov two, tmp
-    ldi tmp, 0x11
-    mov DC1, tmp
+    ldi tmp1, 0x01
+    mov one, tmp1
+    ldi tmp1, 0x02
+    mov two, tmp1
+    ldi tmp1, 0x11
+    mov DC1, tmp1
 
     ; initialize buffer pointers in X and Y
     ldi xh, 0x01
@@ -123,7 +148,10 @@ init_not_slot_zero:
     ; card disconnect detection timer
     clr card_ok_counter
 
-    ; raw current value read from ADC */
+    ; ADC */
+    clr adc_c
+    clr adc_l
+    clr adc_h
     ser current_raw
 
     ; clear state set
@@ -143,23 +171,7 @@ state_action:
     ; skip any state changes also if slot zero
     cp slot_nr, zero
     breq state_action_end
-    ; enable/disable card power
-    sbrs state_set, 0
-    rjmp state_action_no_power
-    sbi _SFR_IO_ADDR(PORTB), 0
-    sbi LED_PORT, LED_G_BIT
-    cbi LED_PORT, LED_R_BIT
-    ori state, 0x10
-    clr state_set
-    rjmp state_action_end
-state_action_no_power:
-    ; double check to make sure we do not turn off power on slot zero
-    cpse slot_nr,zero
-    cbi _SFR_IO_ADDR(PORTB), 0
-    cbi LED_PORT, LED_G_BIT
-    sbi LED_PORT, LED_R_BIT
-    andi state, ~0x10
-    clr state_set
+    call power_state_update
 state_action_end:
 
     ; card detection
@@ -174,7 +186,7 @@ card_detect_no:
     dec card_ok_counter
     ; disable power if zero, card was removed
     brne card_detect_end
-    ; double check to make sure we do not turn off power on slot zero
+    ; do not turn off power on slot zero
     cpse slot_nr, zero
     cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
@@ -184,37 +196,45 @@ card_detect_end:
 
     ; read adc
 adc_handler:
-    lds tmp, ADCSRA
-    sbrs tmp, ADIF
+    lds tmp1, ADCSRA
+    sbrs tmp1, ADIF
     rjmp adc_handler_end
-    lds current_raw, ADCH
+    lds tmp0, ADCH
+    add adc_l, tmp0
+    adc adc_h, zero
+    inc adc_c
+    brvc adc_handler_start_again
+    ; save measurement average
+    mov current_raw, adc_h
+    clr adc_l
+    clr adc_h
     ; cannot send zero, set to 0xff if zero
     cp current_raw, zero
-    brne adc_handler_not_zero
+    brne adc_handler_start_again
     ser current_raw
-adc_handler_not_zero:
+adc_handler_start_again:
     ; clear interrupt and start next conversion
-    ori tmp, 0x50
-    sts ADCSRA, tmp
+    ori tmp1, 0x50
+    sts ADCSRA, tmp1
 adc_handler_end:
 
     ; timer 1, 100Hz
 timer_handler:
     sbis _SFR_IO_ADDR(TIFR1), OCF1A
     rjmp timer_handler_end
-    ldi tmp, 0x07
-    out _SFR_IO_ADDR(TIFR1), tmp
+    ldi tmp1, 0x07
+    out _SFR_IO_ADDR(TIFR1), tmp1
     or spi_data_lock, one
     ; put state and raw current into send queue
-    ldi tmp, 0x11
-    st X+, tmp
+    ldi tmp1, 0x11
+    st X+, tmp1
     sbrc xh, 3
     ldi xh, 0x01
     st X+, state
     sbrc xh, 3
     ldi xh, 0x01
-    ldi tmp, 0x12
-    st X+, tmp
+    ldi tmp1, 0x12
+    st X+, tmp1
     sbrc xh, 3
     ldi xh, 0x01
     st X+, current_raw
@@ -229,34 +249,36 @@ button_handler_not_pushed:
     ; if button was not even down before
     cpi button_pushed, 0
     breq button_handler_end
-    ; check power state, if power is off, turn on using state_set
+    ; check power state, if power is off, turn on
     sbrc state, 4
     rjmp button_handler_clear
     ; turn power on only if this was short push, less than 500ms
     cpi button_pushed, 5
     brsh button_handler_clear
-    ldi state_set, 0x05
+    call power_state_update_on
 button_handler_clear:
     ser button_pushed
 button_handler_pushed:
     inc button_pushed
-    ; if button has been pushed for 4 seconds, force power off using state_set
+    ; if button has been pushed for 4 seconds, force power off
     cpi button_pushed, 40
     brne button_handler_end
-    ldi state_set, 0x04
+    call power_state_update_off
 button_handler_end:
     ;
 timer_handler_end:
 
-    ; check if new data from uart has been received
+    ; check if new data from uart has been received only if a card is connected
 uart_rx_handler:
-    lds tmp, UCSR0A
-    sbrs tmp, RXC0
+    sbrs state, 6
+    rjmp uart_rx_handler_end
+    lds tmp1, UCSR0A
+    sbrs tmp1, RXC0
     rjmp uart_rx_handler_end
     ; receive byte from uart
-    lds tmp, UDR0
-    cpse tmp, zero
-    st X+, tmp
+    lds tmp1, UDR0
+    cpse tmp1, zero
+    st X+, tmp1
     ; buffer is 0x0100-0x07ff, so check when X flips to 0x0800
     sbrc xh, 3
     ldi xh, 0x01

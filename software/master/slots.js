@@ -5,17 +5,19 @@ const slots = [];
 
 const slotTransfer = (slotId, callback) => {
   const slot = slots[slotId];
+  const sendFirstCh = slot.inputQueue.pop() || 0x11;
   const sendBuffer = Buffer.concat([
-    Buffer.from([slot.inputQueue.pop() || 0x11]),
+    Buffer.from([sendFirstCh]),
     Buffer.alloc(slot.hasCard ? 15 : 7, 0x11),
   ]);
   spi.transfer(slot.id, sendBuffer, (data) => {
-    // console.log(sendBuffer, data);
+    // sendFirstCh != 0x11 && console.log(sendBuffer, data);
 
     const noInvalids = [];
 
     data.forEach((ch) => {
       if (slot?.lastByte === 0x11) {
+        // console.log(slot.id, ch);
         slot.status = ch;
         slot.ok = ch & 0x80 ? true : false;
         slot.hasCard = slot.ok && ch & 0x40 ? true : false;
