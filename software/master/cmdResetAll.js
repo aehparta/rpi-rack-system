@@ -1,9 +1,11 @@
 const { spawn } = require('child_process');
 const slots = require('./slots');
+const { spi } = require('./io');
 
-const upgrade = (slotId, single = false) => {
+const reset = (slotId, single = false) => {
   const slot = slots[slotId];
   if (slot === undefined) {
+    spi.select(15);
     return;
   }
 
@@ -26,7 +28,7 @@ const upgrade = (slotId, single = false) => {
     cmd.on('close', (code) => {
       code !== 0 && console.error(' - FAILED');
       if (!single) {
-        upgrade(slotId + 1);
+        reset(slotId + 1);
       }
     });
   });
@@ -44,4 +46,4 @@ if (
   process.exit(1);
 }
 
-upgrade(slotId || 0, slotId !== undefined);
+reset(slotId || 0, slotId !== undefined);

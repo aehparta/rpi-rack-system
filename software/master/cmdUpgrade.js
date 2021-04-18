@@ -1,6 +1,7 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const slots = require('./slots');
+const { spi } = require('./io');
 
 const binaryFileKeeperSlot = '../keepers/keeper-slot-AVR.elf';
 const binaryFileKeeperFans = '../keepers/keeper-fans-AVR.elf';
@@ -20,6 +21,7 @@ console.log(' - binaries OK');
 const upgrade = (slotId, single = false) => {
   const slot = slots[slotId];
   if (slot === undefined) {
+    spi.select(15);
     return;
   }
 

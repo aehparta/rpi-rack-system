@@ -97,12 +97,43 @@ setInterval(() => {
   });
 }, 500);
 
+let count = 0;
 const upkeep = (slot) => {
-  // slot.inputQueue.push(13);
+  count++;
   slot.transfer((data) => {
-    io.emit('terminal', slot.id, data);
+    if (data.length > 0) {
+      io.emit('terminal', slot.id, data);
+    }
     // upkeep(slot);
     upkeep(slots[slot.id + 1] !== undefined ? slots[slot.id + 1] : slots[0]);
   });
 };
-upkeep(slots[1]);
+upkeep(slots[0]);
+
+setInterval(() => {
+  console.log('\033[2J');
+  console.log('|--------------------------------------------------|');
+  console.log(
+    '| ' +
+      (count / 12).toFixed(0).padStart(5) +
+      ' SPI transfers per second per slot          |'
+  );
+  console.log('|--------------------------------------------------|');
+  console.log('| Slot            Ok      Card    Updates Bytes/s  |');
+  console.log('|--------------------------------------------------|');
+  slots.forEach((slot) => {
+    console.log(
+      `| ${slot.label.padEnd(16)}${
+        slot.ok ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
+      }${
+        slot.hasCard ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
+      }${slot.statusUpdates
+        .toFixed(0)
+        .padEnd(8)}${slot.bytesTransferred.toFixed(0).padEnd(8)} |`
+    );
+    slot.statusUpdates = 0;
+    slot.bytesTransferred = 0;
+  });
+  console.log('|--------------------------------------------------|');
+  count = 0;
+}, 1000);

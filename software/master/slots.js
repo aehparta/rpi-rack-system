@@ -5,26 +5,29 @@ const slots = [];
 
 const slotTransfer = (slotId, callback) => {
   const slot = slots[slotId];
-  const sendFirstCh = slot.inputQueue.pop() || 0x11;
+  const sendFirstCh = slot.inputQueue.pop() || 0;
   const sendBuffer = Buffer.concat([
     Buffer.from([sendFirstCh]),
-    Buffer.alloc(slot.hasCard ? 15 : 7, 0x11),
+    Buffer.alloc(15),
   ]);
   spi.transfer(slot.id, sendBuffer, (data) => {
+    slot.bytesTransferred += data.length;
     // sendFirstCh != 0x11 && console.log(sendBuffer, data);
 
     const noInvalids = [];
 
     data.forEach((ch) => {
-      if (slot?.lastByte === 0x11) {
-        // console.log(slot.id, ch);
+      if (ch === 0) {
+        /* just ignore fully if zero */
+      } else if (slot.lastByte === 0x11) {
+        slot.statusUpdates++;
         slot.status = ch;
         slot.ok = ch & 0x80 ? true : false;
         slot.hasCard = slot.ok && ch & 0x40 ? true : false;
         slot.powered = slot.ok && ch & 0x10 ? true : false;
         slot.poweredDefault = slot.ok && ch & 0x01 ? true : false;
         slot.lastByte = 0;
-      } else if (slot?.lastByte === 0x12) {
+      } else if (slot.lastByte === 0x12) {
         if (slot.powered && ch >= 2 && ch < 255) {
           slot.I += (ch - 2) * 8.2;
           slot.Icount++;
@@ -40,9 +43,8 @@ const slotTransfer = (slotId, callback) => {
       }
     });
 
-    let str = '';
-    if (noInvalids.length > 0) {
-      str = Buffer.from(noInvalids).toString();
+    const str = Buffer.from(noInvalids).toString();
+    if (str.length > 0) {
       /* append to log */
       const lastlog = slots[slotId].lastlog;
       str.split(/(?=\n)/g).forEach((part) => {
@@ -109,6 +111,10 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
     I: 0,
     Icount: 0,
     P: 0,
+
+    lastByte: 0,
+    statusUpdates: 0,
+    bytesTransferred: 0,
 
     select: (callback) => {
       spi.select(slotId, callback);

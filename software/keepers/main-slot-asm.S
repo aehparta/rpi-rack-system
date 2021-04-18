@@ -1,32 +1,33 @@
 
 #include <avr/io.h>
 
-#define tmp0                r0
-#define zero                r1
-#define one                 r2
-#define two                 r3
+#define zero                r0
+#define slot_nr             r1
+
+#define miso_buffer_l       r6
+#define miso_buffer_h       r7
+#define mosi_buffer_l       r8
+#define mosi_buffer_h       r9
 
 #define adc_c               r11
 #define adc_l               r12
 #define adc_h               r13
-#define spi_data_lock       r14
-#define DC1                 r15
 
 ; state etc
-#define slot_nr             r16
-#define state               r17
-#define current_raw         r18
-#define state_set           r19
-#define card_ok_counter     r20
-#define button_pushed       r21
+#define state               r16
+#define current_raw         r17
+#define card_ok_counter     r18
+#define button_pushed       r19
 
 ; constant registers used by interrupt routines
 ; these registers must not be used elsewhere
-#define spi_reg_out         r23
-#define spi_reg_in          r24
+#define spi_reg_out         r22
+#define spi_reg_in          r23
 
-; don't use register higher than this, they are reserved
+#define tmp0                r24
 #define tmp1                r25
+
+; don't use register higher than previous, they are reserved for X, Y and Z
 
 ; button
 #define BUTTON_PORT         _SFR_IO_ADDR(PIND)
@@ -45,48 +46,37 @@
 ; spi data received interrupt
 .global SPI_STC_vect
 SPI_STC_vect:
-    ; read incoming data
     in spi_reg_in, _SFR_IO_ADDR(SPDR)
-    ; send incoming uart data or zero if locked
-    sbrs spi_data_lock, 0
-    ld spi_reg_out, Y
     out _SFR_IO_ADDR(SPDR), spi_reg_out
+
+    ; load next byte to be send next time
+    ld spi_reg_out, X
     ; if byte is zero, then skip incrementing Y
     cpse spi_reg_out, zero
-    st Y+, zero
-    ; always clear out reg
-    clr spi_reg_out
-    ; buffer is 0x0100-0x07ff, so check when Y flips to 0x0800
-    sbrc yh, 3
-    ldi yh, 0x01
-    ; check for incoming commands
-    cpi spi_reg_in, 8
-    brlo spi_is_command
-    cpse spi_reg_in, DC1
-    sts UDR0, spi_reg_in
-    reti
-spi_is_command:
-    mov state_set, spi_reg_in
+    st X+, zero
+    ; buffer is 0x0100-0x07ff, so check when pointer flips to 0x0800 (fourth bit is set)
+    sbrc xh, 3
+    ldi xh, 0x01
+
+    ; save incoming data to tx buffer
+    cpse spi_reg_in, zero
+    st Z+, spi_reg_in
+    ldi zh, 0x08
+
     reti
 
 
-power_state_update:
-    ; enable/disable card power
-    sbrs state_set, 0
-    rjmp power_state_update_off
 power_state_update_on:
     sbi _SFR_IO_ADDR(PORTB), 0
     sbi LED_PORT, LED_G_BIT
     cbi LED_PORT, LED_R_BIT
     ori state, 0x10
-    clr state_set
     ret
 power_state_update_off:
-    cbi _SFR_IO_ADDR(PORTB), 0
+    ; cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
     sbi LED_PORT, LED_R_BIT
     andi state, ~0x10
-    clr state_set
     ret
 
 
@@ -94,24 +84,21 @@ power_state_update_off:
 asm_main:
     ; initialize compare value registers
     clr zero
-    ldi tmp1, 0x01
-    mov one, tmp1
-    ldi tmp1, 0x02
-    mov two, tmp1
-    ldi tmp1, 0x11
-    mov DC1, tmp1
 
-    ; initialize buffer pointers in X and Y
+    ; initialize buffer pointers
     ldi xh, 0x01
-    ldi xl, 0x00
+    clr xl
     ldi yh, 0x01
-    ldi yl, 0x00
-clear_buffer:
-    st Y+, zero
-    sbrs yh, 3
-    rjmp clear_buffer
-    ldi yh, 0x01
-    ldi yl, 0x00
+    clr yl
+    ldi zh, 0x08
+    clr zl
+    movw miso_buffer_l, yl
+    movw mosi_buffer_l, zl
+ram_clear:
+    st X+, zero
+    cpse xh, 0x09
+    rjmp ram_clear
+    ldi xh, 0x01
 
     ; read  slot number from eeprom
     out _SFR_IO_ADDR(EEARH), zero
@@ -121,7 +108,8 @@ clear_buffer:
 
     ; read  default status from eeprom
     out _SFR_IO_ADDR(EEARH), zero
-    out _SFR_IO_ADDR(EEARL), one
+    ldi tmp0, 1
+    out _SFR_IO_ADDR(EEARL), tmp0
     sbi _SFR_IO_ADDR(EECR), EERE
     in state, _SFR_IO_ADDR(EEDR)
     ; only lower bits are used
@@ -132,15 +120,13 @@ clear_buffer:
     sbrc state, 0
     ori state, 0x10
     ; set bit 4 (and 1) also if it is slot 0, it is on as default
-    cp slot_nr, zero
-    brne init_not_slot_zero
     ori state, 0x11
-init_not_slot_zero:
+    cpse slot_nr, zero
+    andi state, ~0x11
 
-    ; spi interrupts related registers
+    ; spi interrupt related registers
     clr spi_reg_in
     clr spi_reg_out
-    clr spi_data_lock
 
     ; button pushed counter
     clr button_pushed
@@ -154,25 +140,12 @@ init_not_slot_zero:
     clr adc_h
     ser current_raw
 
-    ; clear state set
-    clr state_set
-
     ; enable interrupts 
     sei
 
     ; loop here forevah!
 main_loop:
     wdr ; watchdog reset
-
-    ; check incoming state change request
-state_action:
-    sbrs state_set, 2
-    rjmp state_action_end
-    ; skip any state changes also if slot zero
-    cp slot_nr, zero
-    breq state_action_end
-    call power_state_update
-state_action_end:
 
     ; card detection
 card_detect:
@@ -186,8 +159,6 @@ card_detect_no:
     dec card_ok_counter
     ; disable power if zero, card was removed
     brne card_detect_end
-    ; do not turn off power on slot zero
-    cpse slot_nr, zero
     cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
     sbi LED_PORT, LED_R_BIT
@@ -224,23 +195,24 @@ timer_handler:
     rjmp timer_handler_end
     ldi tmp1, 0x07
     out _SFR_IO_ADDR(TIFR1), tmp1
-    or spi_data_lock, one
     ; put state and raw current into send queue
+    movw yl, miso_buffer_l
     ldi tmp1, 0x11
-    st X+, tmp1
-    sbrc xh, 3
-    ldi xh, 0x01
-    st X+, state
-    sbrc xh, 3
-    ldi xh, 0x01
+    st Y+, tmp1
+    sbrc yh, 3
+    ldi yh, 0x01
+    st Y+, state
+    sbrc yh, 3
+    ldi yh, 0x01
     ldi tmp1, 0x12
-    st X+, tmp1
-    sbrc xh, 3
-    ldi xh, 0x01
-    st X+, current_raw
-    sbrc xh, 3
-    ldi xh, 0x01
-    clr spi_data_lock
+    st Y+, tmp1
+    sbrc yh, 3
+    ldi yh, 0x01
+    st Y+, current_raw
+    sbrc yh, 3
+    ldi yh, 0x01
+    movw miso_buffer_l, yl
+
     ; check button (inside timer)
 button_handler:
     sbis BUTTON_PORT, BUTTON_BIT
@@ -255,7 +227,7 @@ button_handler_not_pushed:
     ; turn power on only if this was short push, less than 500ms
     cpi button_pushed, 5
     brsh button_handler_clear
-    call power_state_update_on
+    rcall power_state_update_on
 button_handler_clear:
     ser button_pushed
 button_handler_pushed:
@@ -263,25 +235,72 @@ button_handler_pushed:
     ; if button has been pushed for 4 seconds, force power off
     cpi button_pushed, 40
     brne button_handler_end
-    call power_state_update_off
+    rcall power_state_update_off
 button_handler_end:
     ;
 timer_handler_end:
 
-    ; check if new data from uart has been received only if a card is connected
-uart_rx_handler:
+    ;
+    ; skip all stuff from here on if no card is connected
+    ;
     sbrs state, 6
-    rjmp uart_rx_handler_end
+    rjmp main_loop
+
+    ; uart handling
+uart_handlers:
+    ; load uart status into tmp1
     lds tmp1, UCSR0A
+
+    ; check if we should and can send data to uart
+mosi_buffer_handler:
+    sbrs tmp1, UDRE0
+    rjmp mosi_buffer_handler_end
+    movw yl, mosi_buffer_l
+    ld tmp0, Y
+    cpse tmp0, zero
+    rcall mosi_buffer_handler_has_data
+    movw mosi_buffer_l, yl
+mosi_buffer_handler_end:
+
+    ; check if new data from uart has been received
+miso_buffer_handler:
     sbrs tmp1, RXC0
-    rjmp uart_rx_handler_end
+    rjmp miso_buffer_handler_end
+    movw yl, miso_buffer_l
     ; receive byte from uart
-    lds tmp1, UDR0
-    cpse tmp1, zero
-    st X+, tmp1
-    ; buffer is 0x0100-0x07ff, so check when X flips to 0x0800
-    sbrc xh, 3
-    ldi xh, 0x01
-uart_rx_handler_end:
+    lds tmp0, UDR0
+    cpse tmp0, zero
+    st Y+, tmp0
+    ; buffer is 0x0100-0x07ff, so check when pointer flips to 0x0800 (fourth bit is set)
+    sbrc yh, 3
+    ldi yh, 0x01
+    movw miso_buffer_l, yl
+miso_buffer_handler_end:
 
     rjmp main_loop
+
+
+mosi_buffer_handler_has_data:
+    ; clear current position
+    st Y, zero
+    ; increase buffer pointer
+    inc yl
+    ; power on command check
+    cpi tmp0, 0x05
+    brne mosi_buffer_handler_has_data__not_power_on
+    ; don't accept power commands for slot 0 from remote
+    cpse slot_nr, zero
+    rcall power_state_update_on
+    ret
+mosi_buffer_handler_has_data__not_power_on:
+    ; power off command check
+    cpi tmp0, 0x04
+    brne mosi_buffer_handler_has_data__not_power_off
+    ; don't accept power commands for slot 0 from remote
+    cpse slot_nr, zero
+    rcall power_state_update_off
+    ret
+mosi_buffer_handler_has_data__not_power_off:
+    ; sent to uart
+    sts UDR0, tmp0
+    ret
