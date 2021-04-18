@@ -73,7 +73,7 @@ power_state_update_on:
     ori state, 0x10
     ret
 power_state_update_off:
-    ; cbi _SFR_IO_ADDR(PORTB), 0
+    cbi _SFR_IO_ADDR(PORTB), 0
     cbi LED_PORT, LED_G_BIT
     sbi LED_PORT, LED_R_BIT
     andi state, ~0x10
