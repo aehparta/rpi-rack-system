@@ -1,10 +1,10 @@
 
 #include <libe/libe.h>
 
+extern void asm_main(void);
+
 int main(void)
 {
-	while (1) {
-		os_wdt_reset();
-	}
+	asm_main();
 	return 0;
 }

@@ -17,10 +17,11 @@ include $(LIBE_PATH)/init.mk
 
 # our own sources etc
 BUILD_BINS = keeper-slot keeper-fans
-PROGRAM_BIN = keeper-slot
+PROGRAM_BIN = keeper-fans
 keeper-slot_SRC = main-slot.c $(libe_SRC)
 keeper-slot_ASRC = main-slot-asm.S
 keeper-fans_SRC = main-fans.c $(libe_SRC)
+keeper-fans_ASRC = main-fans-asm.S
 
 # build
 include $(LIBE_PATH)/build.mk
