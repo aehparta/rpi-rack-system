@@ -29,11 +29,9 @@ const slotTransfer = (slotId, callback) => {
         slot.lastByte = 0;
       } else if (slot.lastByte === 0x12) {
         if (slot.powered && ch >= 2 && ch < 255) {
-          slot.I += (ch - 2) * 8.2;
+          slot.Isum += (ch - 2) * 8.2;
           slot.Icount++;
         }
-        slot.U += 15.6;
-        slot.Ucount++;
         slot.lastByte = 0;
       } else {
         if (ch !== 0x11 && ch !== 0x12 && ch > 7) {
@@ -104,13 +102,13 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
     ok: false,
     hasCard: false,
 
+    I: 0,
+    P: 0,
+
     inputQueue: [],
     lastlog: [''],
-    U: 0,
-    Ucount: 0,
-    I: 0,
+    Isum: 0,
     Icount: 0,
-    P: 0,
 
     lastByte: 0,
     statusUpdates: 0,

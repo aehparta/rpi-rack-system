@@ -10,14 +10,16 @@
 #define mosi_buffer_h       r9
 
 #define adc_c               r11
-#define adc_l               r12
-#define adc_h               r13
+#define adc_0               r12
+#define adc_1               r13
+#define adc_2               r14
 
 ; state etc
 #define fans                r16
 #define fans_pwm_value      r17
 #define fans_pwm_counter    r18
 #define U_raw               r19
+#define last_byte           r20
 
 ; constant registers used by interrupt routines
 ; these registers must not be used elsewhere
@@ -67,7 +69,7 @@ asm_main:
     clr zero
 
     ; fans gpio as outputs and on as start
-    ldi tmp0, 0x03f
+    ldi tmp0, 0x3f
     out FANS_DDR, tmp0
     out FANS_PORT, zero
 
@@ -95,14 +97,18 @@ ram_clear:
     clr spi_reg_in
     clr spi_reg_out
 
+    ; previous byte that could be a command
+    clr last_byte
+
     ; ADC */
     clr adc_c
-    clr adc_l
-    clr adc_h
+    clr adc_0
+    clr adc_1
+    clr adc_2
     ser U_raw
 
     ; enable interrupts 
-    ; sei
+    sei
 
     ; loop here forevah!
 main_loop:
@@ -112,7 +118,6 @@ main_loop:
 fans_pwm_handler:
     inc fans_pwm_counter
     andi fans_pwm_counter, 0x0f
-    cp fans_pwm_counter, zero
     breq fans_pwm_handler_on
     cpse fans_pwm_counter, fans_pwm_value
     rjmp fans_pwm_handler_end
@@ -120,91 +125,90 @@ fans_pwm_handler:
 fans_pwm_handler_end:
 
     ; read adc
-; adc_handler:
-;     lds tmp1, ADCSRA
-;     sbrs tmp1, ADIF
-;     rjmp adc_handler_end
-;     lds tmp0, ADCH
-;     add adc_l, tmp0
-;     adc adc_h, zero
-;     inc adc_c
-;     brvc adc_handler_start_again
-;     ; save measurement average
-;     mov U_raw, adc_h
-;     clr adc_l
-;     clr adc_h
-;     ; cannot send zero, set to 0xff if zero
-;     cp U_raw, zero
-;     brne adc_handler_start_again
-;     ser U_raw
-; adc_handler_start_again:
-;     ; clear interrupt and start next conversion
-;     ori tmp1, 0x50
-;     sts ADCSRA, tmp1
-; adc_handler_end:
+adc_handler:
+    lds tmp1, ADCSRA
+    sbrs tmp1, ADIF
+    rjmp adc_handler_end
+    lds tmp0, ADCL
+    add adc_0, tmp0
+    lds tmp0, ADCH
+    adc adc_1, tmp0
+    adc adc_2, zero
+    inc adc_c
+    brne adc_handler_start_again
+    ; save measurement average
+    mov U_raw, adc_2
+    clr adc_0
+    clr adc_1
+    clr adc_2
+    ; cannot send zero, set to 0xff if zero
+    cp U_raw, zero
+    brne adc_handler_start_again
+    ser U_raw
+adc_handler_start_again:
+    ; clear interrupt and start next conversion
+    ori tmp1, 0x50
+    sts ADCSRA, tmp1
+adc_handler_end:
 
     ; timer 1, 100Hz
-; timer_handler:
-;     sbis _SFR_IO_ADDR(TIFR1), OCF1A
-;     rjmp timer_handler_end
-;     ldi tmp1, 0x07
-;     out _SFR_IO_ADDR(TIFR1), tmp1
-;     movw yl, miso_buffer_l
-;     ldi tmp1, 0x11
-;     st Y+, tmp1
-;     sbrc yh, 3
-;     ldi yh, 0x01
-;     st Y+, fans
-;     sbrc yh, 3
-;     ldi yh, 0x01
-;     ldi tmp1, 0x12
-;     st Y+, tmp1
-;     sbrc yh, 3
-;     ldi yh, 0x01
-;     st Y+, U_raw
-;     sbrc yh, 3
-;     ldi yh, 0x01
-;     movw miso_buffer_l, yl
-; timer_handler_end:
+timer_handler:
+    sbis _SFR_IO_ADDR(TIFR1), OCF1A
+    rjmp timer_handler_end
+    ldi tmp1, 0x07
+    out _SFR_IO_ADDR(TIFR1), tmp1
+    movw yl, miso_buffer_l
+    ldi tmp1, 0x11
+    st Y+, tmp1
+    sbrc yh, 3
+    ldi yh, 0x01
+    st Y+, U_raw
+    sbrc yh, 3
+    ldi yh, 0x01
+    movw miso_buffer_l, yl
+timer_handler_end:
 
     ; check for incoming commands
-; mosi_buffer_handler:
-;     sbrs tmp1, UDRE0
-;     rjmp mosi_buffer_handler_end
-;     movw yl, mosi_buffer_l
-;     ld tmp0, Y
-;     cpse tmp0, zero
-;     rcall mosi_buffer_handler_has_data
-;     movw mosi_buffer_l, yl
-; mosi_buffer_handler_end:
+mosi_buffer_handler:
+    movw yl, mosi_buffer_l
+    ld tmp0, Y
+    cpse tmp0, zero
+    rcall mosi_buffer_handler_has_data
+    movw mosi_buffer_l, yl
+mosi_buffer_handler_end:
 
     rjmp main_loop
 
 
-; mosi_buffer_handler_has_data:
-;     ; clear current position
-;     st Y, zero
-;     ; increase buffer pointer
-;     inc yl
-;     ; power on command check
-;     cpi tmp0, 0x05
-;     brne mosi_buffer_handler_has_data__not_power_on
-;     ; don't accept power commands for slot 0 from remote
-;     cpse slot_nr, zero
-;     rcall power_state_update_on
-;     ret
-; mosi_buffer_handler_has_data__not_power_on:
-;     ; power off command check
-;     cpi tmp0, 0x04
-;     brne mosi_buffer_handler_has_data__not_power_off
-;     ; don't accept power commands for slot 0 from remote
-;     cpse slot_nr, zero
-;     rcall power_state_update_off
-;     ret
-; mosi_buffer_handler_has_data__not_power_off:
-;     ; sent to uart
-;     sts UDR0, tmp0
-;     ret
+mosi_buffer_handler_has_data:
+    ; clear current position
+    st Y, zero
+    ; increase buffer pointer
+    inc yl
+    ; fan speed command
+    cpi last_byte, 0x11
+    breq mosi_buffer_handler_state
+    ; fan speed command
+    cpi last_byte, 0x12
+    breq mosi_buffer_handler_fan_speed
+    ; save value
+    mov last_byte, tmp0
+    ret
+
+mosi_buffer_handler_state:
+    andi tmp0, 0x3f
+    mov fans, tmp0
+    clr last_byte
+    ret
+
+mosi_buffer_handler_fan_speed:
+    andi tmp0, 0x1f
+    ; set minimum speed to 3
+    ori tmp0, 0x03
+    mov fans_pwm_value, tmp0
+    clr last_byte
+    ret
+
 
 fans_pwm_handler_on:
     sbrc fans, 0

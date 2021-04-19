@@ -51,7 +51,20 @@ const app = new Vue({
     }, 1000);
   },
   data: {
-    overview: { U: 0, I: 0, P: 0 },
+    overview: {
+      U: 0,
+      I: 0,
+      P: 0,
+    },
+    fans: {
+      speed: 0x04,
+      speeds: [
+        { value: 0x04, label: 'Stealth' },
+        { value: 0x08, label: 'Quiet' },
+        { value: 0x0c, label: 'Loud' },
+        { value: 0x10, label: 'Annoying' },
+      ],
+    },
     slots: [],
     slot: undefined,
     view: 'overview',
@@ -85,6 +98,9 @@ const app = new Vue({
     },
     slotPowerToggle(id) {
       socket.emit('terminal', id, this.slots[id].powered ? '\4' : '\5');
+    },
+    fansSpeedChange() {
+      socket.emit('fans-speed', this.fans.speed);
     },
   },
 });

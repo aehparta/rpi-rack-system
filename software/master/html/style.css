@@ -78,7 +78,7 @@ button.led {
 
 button.led:before {
   content: '⬤';
-  margin: 0 0.5em;
+  margin: 0 0.5em 0 0.5em;
   color: #c0c0c0;
   text-shadow: 0 0 0.1em #000000;
 }

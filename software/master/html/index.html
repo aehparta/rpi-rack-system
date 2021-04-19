@@ -8,14 +8,19 @@
   <body>
     <div id="app">
       <nav>
-        <button v-on:click="{{showOverview()}}" v-bind:class="{selected: view === 'overview'}">Overview</button>
+        <button
+          @click="{{showOverview()}}"
+          :class="{selected: view === 'overview'}"
+        >
+          Overview
+        </button>
         <button
           v-for="slot in slots"
-          v-on:click="{{slot.select()}}"
+          @click="{{slot.select()}}"
           class="led"
-          v-bind:class="{error: !slot.ok, dark: !slot.hasCard, green: slot.powered, selected: slot.selected}"
+          :class="{error: !slot.ok, dark: !slot.hasCard, green: slot.powered, selected: slot.selected}"
         >
-          {{slot.label}}
+          <span>{{slot.label}}</span>
         </button>
       </nav>
       <main>
@@ -31,6 +36,13 @@
               <div class="measurement">{{overview.P.toFixed(1)}} W</div>
             </div>
           </div>
+          <div>
+            <select v-model="fans.speed" @change="fansSpeedChange()">
+              <option v-for="speed in fans.speeds" :value="speed.value">
+                {{speed.label}}
+              </option>
+            </select>
+          </div>
         </div>
         <div class="slot" v-if="slot">
           <input class="label" v-model="slot.label" />
@@ -38,11 +50,11 @@
             <div class="widget">
               <button
                 class="toggle led green"
-                v-bind:class="{on: slot.powered}"
+                :class="{on: slot.powered}"
                 :disabled="!slot.hasCard || slot.id === 0"
-                v-on:click="{{slot.powerToggle()}}"
+                @click="{{slot.powerToggle()}}"
               >
-                Power
+                <span>Power</span>
               </button>
             </div>
             <div class="widget">

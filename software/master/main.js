@@ -1,5 +1,6 @@
 const config = require('./config');
 const slots = require('./slots');
+const fans = require('./fans');
 const fs = require('fs');
 
 console.log(`url: ${config.url}`);
@@ -58,6 +59,9 @@ io.sockets.on('connection', (socket) => {
       });
     }
   });
+  socket.on('fans-speed', (speed) => {
+    fans.speed = Number(speed);
+  });
   socket.emit(
     'slots',
     slots.map((slot) => ({
@@ -71,56 +75,62 @@ io.sockets.on('connection', (socket) => {
       lastlog: slot.lastlog.join(''),
     }))
   );
+  socket.emit('fan-speed', fans.speed);
 });
 
 /* update measurements for each slot periodically */
 setInterval(() => {
   slots.forEach((slot) => {
-    const U = slot.U / slot.Ucount || 0;
-    const I = slot.I / slot.Icount / 1000 || 0;
-    const P = U * I;
+    slot.I = slot.Isum / slot.Icount / 1000 || 0;
+    slot.P = fans.U * slot.I;
     io.emit('status', slot.id, {
-      U,
-      I,
-      P,
+      U: fans.U,
+      I: slot.I,
+      P: slot.P,
       ok: slot.ok,
       hasCard: slot.hasCard,
       powered: slot.powered,
       poweredDefault: slot.poweredDefault,
       statusRaw: slot.status,
     });
-    slot.U = 0;
-    slot.Ucount = 0;
-    slot.I = 0;
+    slot.Isum = 0;
     slot.Icount = 0;
-    slot.P = P;
   });
 }, 500);
 
-let count = 0;
+let spiTransferCount = 0;
 const upkeep = (slot) => {
-  count++;
+  spiTransferCount++;
   slot.transfer((data) => {
     if (data.length > 0) {
       io.emit('terminal', slot.id, data);
     }
     // upkeep(slot);
-    upkeep(slots[slot.id + 1] !== undefined ? slots[slot.id + 1] : slots[0]);
+    if (slots[slot.id + 1] !== undefined) {
+      upkeep(slots[slot.id + 1]);
+    } else {
+      fans.transfer(() => {
+        upkeep(slots[0]);
+      });
+    }
   });
 };
 upkeep(slots[0]);
 
 setInterval(() => {
   console.log('\033[2J');
-  console.log('|--------------------------------------------------|');
+  console.log('|------------------------------------------------------|');
   console.log(
     '| ' +
-      (count / 12).toFixed(0).padStart(5) +
-      ' SPI transfers per second per slot          |'
+      (
+        (spiTransferCount / 12).toFixed(0) + ' SPI transfers/second/ slot'
+      ).padEnd(44) +
+      fans.U.toFixed(1).padStart(6) +
+      ' V |'
   );
-  console.log('|--------------------------------------------------|');
-  console.log('| Slot            Ok      Card    Updates Bytes/s  |');
-  console.log('|--------------------------------------------------|');
+  console.log('|------------------------------------------------------|');
+  console.log('| Slot            Ok      Card    Updates/s Bytes/s    |');
+  console.log('|------------------------------------------------------|');
   slots.forEach((slot) => {
     console.log(
       `| ${slot.label.padEnd(16)}${
@@ -129,11 +139,11 @@ setInterval(() => {
         slot.hasCard ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
       }${slot.statusUpdates
         .toFixed(0)
-        .padEnd(8)}${slot.bytesTransferred.toFixed(0).padEnd(8)} |`
+        .padEnd(10)}${slot.bytesTransferred.toFixed(0).padEnd(10)} |`
     );
     slot.statusUpdates = 0;
     slot.bytesTransferred = 0;
   });
-  console.log('|--------------------------------------------------|');
-  count = 0;
+  console.log('|------------------------------------------------------|');
+  spiTransferCount = 0;
 }, 1000);

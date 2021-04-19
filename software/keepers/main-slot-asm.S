@@ -10,8 +10,9 @@
 #define mosi_buffer_h       r9
 
 #define adc_c               r11
-#define adc_l               r12
-#define adc_h               r13
+#define adc_0               r12
+#define adc_1               r13
+#define adc_2               r14
 
 ; state etc
 #define state               r16
@@ -136,8 +137,9 @@ ram_clear:
 
     ; ADC */
     clr adc_c
-    clr adc_l
-    clr adc_h
+    clr adc_0
+    clr adc_1
+    clr adc_2
     ser current_raw
 
     ; enable interrupts 
@@ -170,15 +172,18 @@ adc_handler:
     lds tmp1, ADCSRA
     sbrs tmp1, ADIF
     rjmp adc_handler_end
+    lds tmp0, ADCL
+    add adc_0, tmp0
     lds tmp0, ADCH
-    add adc_l, tmp0
-    adc adc_h, zero
+    adc adc_1, tmp0
+    adc adc_2, zero
     inc adc_c
     brvc adc_handler_start_again
     ; save measurement average
-    mov current_raw, adc_h
-    clr adc_l
-    clr adc_h
+    mov current_raw, adc_2
+    clr adc_0
+    clr adc_1
+    clr adc_2
     ; cannot send zero, set to 0xff if zero
     cp current_raw, zero
     brne adc_handler_start_again
