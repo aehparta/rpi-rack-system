@@ -60,6 +60,7 @@ io.sockets.on('connection', (socket) => {
     }
   });
   socket.on('fans-speed', (speed) => {
+    fans.state = Number(speed) > 0 ? 0x3f : 0x00;
     fans.speed = Number(speed);
   });
   socket.emit(
@@ -75,7 +76,7 @@ io.sockets.on('connection', (socket) => {
       lastlog: slot.lastlog.join(''),
     }))
   );
-  socket.emit('fan-speed', fans.speed);
+  socket.emit('fans-speed', fans.speed);
 });
 
 /* update measurements for each slot periodically */

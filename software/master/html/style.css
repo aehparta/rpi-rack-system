@@ -46,6 +46,7 @@ nav > button.led {
 }
 
 button,
+select,
 .measurement {
   display: inline-block;
   text-align: center;
@@ -58,11 +59,13 @@ button,
   text-shadow: 0.07em 0.07em 0.1em #505050;
 }
 
-button:focus {
+button:focus,
+select:focus {
   outline: none;
 }
 
-button:disabled {
+button:disabled,
+select:disabled {
   cursor: not-allowed;
 }
 
@@ -127,6 +130,7 @@ button.error {
   background: #700000;
 }
 
+h1,
 .slot > .label {
   display: block;
   border: 0;
@@ -154,11 +158,28 @@ button.error {
   border: 0.07em solid #404040;
 }
 
+.widget > .label {
+  display: block;
+  text-align: center;
+  margin-bottom: 0.6em;
+}
+
+.widget > .label > label {
+  border-radius: 0.1em;
+  font-family: cursive;
+  font-size: 60%;
+  font-weight: 900;
+  padding: 0.2em 1em 0.2em 1em;
+  background: #f2eecb;
+  box-shadow: 0 0 0.3em #000000;
+}
+
 .widget:not(:first-child) {
   border-left: 0;
 }
 
 .measurement {
+  display: block;
   width: 5em;
   color: #e0c030;
   background: #505050;

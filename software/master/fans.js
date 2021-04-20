@@ -2,15 +2,15 @@ const { spi } = require('./io');
 
 const state = {
   U: 0,
-  status: 0x00,
-  speed: 0x07,
+  state: 0x3f,
+  speed: 0x08,
   lastByte: undefined,
 };
 
 const transfer = (callback) => {
   const sendBuffer = Buffer.from([
     0x11,
-    0x80 | state.status,
+    0x80 | state.state,
     0x12,
     0x80 | state.speed,
   ]);
@@ -38,6 +38,12 @@ module.exports = {
   },
   set speed(value) {
     state.speed = value;
+  },
+  get state() {
+    return state.state;
+  },
+  set state(value) {
+    state.state = value;
   },
   transfer: (callback) => transfer(callback),
 };

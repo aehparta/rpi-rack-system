@@ -121,7 +121,7 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
 
     I: 0,
     P: 0,
-    T: 21,
+    T: NaN,
 
     inputQueue: [],
     lastlog: [''],

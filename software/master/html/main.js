@@ -37,6 +37,10 @@ const app = new Vue({
         term.write(data);
       }
     });
+    socket.on('fans-speed', (speed) => {
+      console.log(speed);
+      this.fans.speed = Number(speed);
+    });
     term.onKey((event) => {
       socket.emit('terminal', this.slot.id, event.key);
     });
@@ -57,8 +61,9 @@ const app = new Vue({
       P: 0,
     },
     fans: {
-      speed: 0x04,
+      speed: 0x00,
       speeds: [
+        { value: 0x00, label: 'Off' },
         { value: 0x04, label: 'Stealth' },
         { value: 0x08, label: 'Quiet' },
         { value: 0x0c, label: 'Loud' },

@@ -25,23 +25,28 @@
       </nav>
       <main>
         <div id="overview" v-show="!slot">
+          <h1>Overview</h1>
           <div class="panel">
             <div class="widget">
+              <div class="label"><label>Voltage</label></div>
               <div class="measurement">{{overview.U.toFixed(1)}} V</div>
             </div>
             <div class="widget">
+              <div class="label"><label>Current</label></div>
               <div class="measurement">{{overview.I.toFixed(3)}} A</div>
             </div>
             <div class="widget">
+              <div class="label"><label>Power</label></div>
               <div class="measurement">{{overview.P.toFixed(1)}} W</div>
             </div>
-          </div>
-          <div>
-            <select v-model="fans.speed" @change="fansSpeedChange()">
-              <option v-for="speed in fans.speeds" :value="speed.value">
-                {{speed.label}}
-              </option>
-            </select>
+            <div class="widget">
+              <div class="label"><label>Fans speed</label></div>
+              <select v-model="fans.speed" @change="fansSpeedChange()">
+                <option v-for="speed in fans.speeds" :value="speed.value">
+                  {{speed.label}}
+                </option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="slot" v-if="slot">
@@ -58,16 +63,16 @@
               </button>
             </div>
             <div class="widget">
-              <div class="measurement">{{slot.U.toFixed(1)}} V</div>
+              <div class="label"><label>Current</label></div>
+              <div class="measurement">{{(slot.P / 5).toFixed(2)}} A</div>
             </div>
             <div class="widget">
-              <div class="measurement">{{slot.I.toFixed(3)}} A</div>
-            </div>
-            <div class="widget">
+              <div class="label"><label>Power</label></div>
               <div class="measurement">{{slot.P.toFixed(1)}} W</div>
             </div>
-            <div class="widget">
-              <div class="measurement">{{slot.T.toFixed(0)}} °C</div>
+            <div v-if="Number.isInteger(slot.T)" class="widget">
+              <div class="label"><label>Temperature</label></div>
+              <div class="measurement">{{slot.T}} °C</div>
             </div>
             <div class="widget">
               <button class="toggle led orange">togLed</button>
@@ -77,30 +82,6 @@
         <div id="terminal" v-show="slot"></div>
       </main>
     </div>
-    <!-- <template id="template-slot">
-        <div class="slot">
-          <input class="label" />
-          <div class="panel">
-            <div class="widget">
-              <button class="power slot-id-needed toggle led green">
-                Power
-              </button>
-            </div>
-            <div class="widget">
-              <div class="measurement"><span class="U">0</span> V</div>
-            </div>
-            <div class="widget">
-              <div class="measurement"><span class="I">0</span> A</div>
-            </div>
-            <div class="widget">
-              <div class="measurement"><span class="P">0</span> W</div>
-            </div>
-            <div class="widget">
-              <button class="toggle led orange">togLed</button>
-            </div>
-          </div>
-        </div>
-      </template> -->
     <script src="vue.min.js"></script>
     <script src="jquery-3.6.0.min.js"></script>
     <script src="xterm.js"></script>
