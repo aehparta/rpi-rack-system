@@ -2,6 +2,20 @@ const { spi } = require('./io');
 const config = require('./config');
 
 const slots = [];
+const commandCharacters = [
+  0x01,
+  0x02,
+  0x03,
+  0x04,
+  0x05,
+  0x06,
+  0x07,
+  0x10,
+  0x11,
+  0x12,
+  0x13,
+  0x14,
+];
 
 const slotTransfer = (slotId, callback) => {
   const slot = slots[slotId];
@@ -19,6 +33,9 @@ const slotTransfer = (slotId, callback) => {
     data.forEach((ch) => {
       if (ch === 0) {
         /* just ignore fully if zero */
+      } else if (slot.lastByte === 0x10) {
+        slot.T = ch;
+        slot.lastByte = 0;
       } else if (slot.lastByte === 0x11) {
         slot.statusUpdates++;
         slot.status = ch;
@@ -34,7 +51,7 @@ const slotTransfer = (slotId, callback) => {
         }
         slot.lastByte = 0;
       } else {
-        if (ch !== 0x11 && ch !== 0x12 && ch > 7) {
+        if (!commandCharacters.includes(ch)) {
           noInvalids.push(ch);
         }
         slot.lastByte = ch;
@@ -104,6 +121,7 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
 
     I: 0,
     P: 0,
+    T: 21,
 
     inputQueue: [],
     lastlog: [''],

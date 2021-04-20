@@ -5,7 +5,7 @@ DefaultDependencies=no
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/rpi-rack-leds-setup shutdown
+ExecStart=/usr/bin/rack-leds-setup shutdown
 
 [Install]
 WantedBy=shutdown.target reboot.target halt.target

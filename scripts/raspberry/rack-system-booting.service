@@ -5,7 +5,7 @@ DefaultDependencies=no
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/rpi-rack-leds-setup booting
+ExecStart=/usr/bin/rack-leds-setup booting
 
 [Install]
 WantedBy=sysinit.target

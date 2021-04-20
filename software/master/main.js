@@ -87,6 +87,7 @@ setInterval(() => {
       U: fans.U,
       I: slot.I,
       P: slot.P,
+      T: slot.T,
       ok: slot.ok,
       hasCard: slot.hasCard,
       powered: slot.powered,
