@@ -1,4 +1,6 @@
 
+LIBE_PATH = ../../libe
+
 TARGET = AVR
 MCU_AVR = atmega328p
 F_CPU_AVR = 11059200
