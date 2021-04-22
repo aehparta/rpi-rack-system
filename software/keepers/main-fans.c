@@ -14,7 +14,7 @@ int p_init(void)
 	gpio_output(GPIOB4); /* MISO must be set as output */
 	SPCR = (1 << SPIE) | (1 << SPE);
 
-	/* enable usart receive with interrupt */
+	/* reset usart receive bit */
 	UCSR0B |= (1 << RXEN0);
 
 	/* adc reference voltage to internal 1.1 V, adjust result left and channel 7 */
@@ -28,6 +28,8 @@ int p_init(void)
 	TCCR1A = 0x00;
 	OCR1A = F_CPU / 256 / 10;
 	TCCR1B = (1 << CS12) | (1 << WGM12);
+
+    return 0;
 }
 
 int main(void)

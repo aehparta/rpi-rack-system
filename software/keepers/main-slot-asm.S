@@ -3,6 +3,7 @@
 
 #define zero                r0
 #define slot_nr             r1
+#define sreg_int            r2
 
 #define miso_buffer_l       r6
 #define miso_buffer_h       r7
@@ -30,6 +31,9 @@
 
 ; don't use register higher than previous, they are reserved for X, Y and Z
 
+; incoming spi special commands
+#define CMD_RESET           0x15
+
 ; button
 #define BUTTON_PORT         _SFR_IO_ADDR(PIND)
 #define BUTTON_BIT          7
@@ -47,6 +51,7 @@
 ; spi data received interrupt
 .global SPI_STC_vect
 SPI_STC_vect:
+    in sreg_int, _SFR_IO_ADDR(SREG)
     in spi_reg_in, _SFR_IO_ADDR(SPDR)
     out _SFR_IO_ADDR(SPDR), spi_reg_out
 
@@ -64,8 +69,25 @@ SPI_STC_vect:
     st Z+, spi_reg_in
     ldi zh, 0x08
 
+    out _SFR_IO_ADDR(SREG), sreg_int
     reti
 
+    ; reset buffers
+reset_buffers:
+    ldi xh, 0x01
+    clr xl
+    ldi yh, 0x01
+    clr yl
+    ldi zh, 0x08
+    clr zl
+    movw miso_buffer_l, yl
+    movw mosi_buffer_l, zl
+reset_buffers_ram:
+    st X+, zero
+    cpse xh, 0x09
+    rjmp reset_buffers_ram
+    ldi xh, 0x01
+    ret
 
 power_state_update_on:
     sbi _SFR_IO_ADDR(PORTB), 0
@@ -86,20 +108,8 @@ asm_main:
     ; initialize compare value registers
     clr zero
 
-    ; initialize buffer pointers
-    ldi xh, 0x01
-    clr xl
-    ldi yh, 0x01
-    clr yl
-    ldi zh, 0x08
-    clr zl
-    movw miso_buffer_l, yl
-    movw mosi_buffer_l, zl
-ram_clear:
-    st X+, zero
-    cpse xh, 0x09
-    rjmp ram_clear
-    ldi xh, 0x01
+    ; reset buffers
+    rcall reset_buffers
 
     ; read  slot number from eeprom
     out _SFR_IO_ADDR(EEARH), zero
@@ -202,6 +212,9 @@ timer_handler:
     out _SFR_IO_ADDR(TIFR1), tmp1
     ; put state and raw current into send queue
     movw yl, miso_buffer_l
+    ld tmp1, Y
+    cpi tmp1, 0x10
+    breq timer_handler_had_command
     ldi tmp1, 0x11
     st Y+, tmp1
     sbrc yh, 3
@@ -216,8 +229,8 @@ timer_handler:
     st Y+, current_raw
     sbrc yh, 3
     ldi yh, 0x01
+timer_handler_had_command:
     movw miso_buffer_l, yl
-
     ; check button (inside timer)
 button_handler:
     sbis BUTTON_PORT, BUTTON_BIT
@@ -306,6 +319,11 @@ mosi_buffer_handler_has_data__not_power_on:
     rcall power_state_update_off
     ret
 mosi_buffer_handler_has_data__not_power_off:
+    cpi tmp0, CMD_RESET
+    brne mosi_buffer_handler_has_data__not_reset
+    ; TODO
+    ret
+mosi_buffer_handler_has_data__not_reset:
     ; sent to uart
     sts UDR0, tmp0
     ret

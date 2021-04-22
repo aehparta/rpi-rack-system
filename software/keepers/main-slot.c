@@ -51,7 +51,9 @@ int p_init(void)
 	gpio_output(GPIOB4); /* MISO must be set as output */
 	SPCR = (1 << SPIE) | (1 << SPE);
 
-	/* enable usart receive with interrupt */
+	/* enable uart odd parity */
+	// UCSR0C |= (1 << UPM00) | (1 << UPM01);
+	/* reset uart receive bit */
 	UCSR0B |= (1 << RXEN0);
 
 	/* LEDs */
@@ -87,8 +89,8 @@ int p_init(void)
 	/* start first conversion */
 	ADCSRA |= (1 << ADSC);
 
-    /* timer 1 to 10Hz */
-    TCCR1A = 0x00;
+	/* timer 1 to 10Hz */
+	TCCR1A = 0x00;
 	OCR1A = F_CPU / 256 / 10;
 	TCCR1B = (1 << CS12) | (1 << WGM12);
 

@@ -22,18 +22,27 @@ const slotTransfer = (slotId, callback) => {
   const sendFirstCh = slot.inputQueue.pop() || 0;
   const sendBuffer = Buffer.concat([
     Buffer.from([sendFirstCh]),
-    Buffer.alloc(15),
+    Buffer.alloc(slot.hadData > 0 ? 15 : 1),
   ]);
   spi.transfer(slot.id, sendBuffer, (data) => {
     slot.bytesTransferred += data.length;
     // sendFirstCh != 0x11 && console.log(sendBuffer, data);
 
-    const noInvalids = [];
+    if (slot.hadData > 0) {
+      slot.hadData--;
+    }
+    const bytesToTerminal = [];
 
     data.forEach((ch) => {
       if (ch === 0) {
         /* just ignore fully if zero */
-      } else if (slot.lastByte === 0x10) {
+        return;
+      }
+
+      /* mark that there was data now so next read we read more */
+      slot.hadData = 5;
+
+      if (slot.lastByte === 0x10) {
         slot.T = ch;
         slot.lastByte = 0;
       } else if (slot.lastByte === 0x11) {
@@ -52,13 +61,13 @@ const slotTransfer = (slotId, callback) => {
         slot.lastByte = 0;
       } else {
         if (!commandCharacters.includes(ch)) {
-          noInvalids.push(ch);
+          bytesToTerminal.push(ch);
         }
         slot.lastByte = ch;
       }
     });
 
-    const str = Buffer.from(noInvalids).toString();
+    const str = Buffer.from(bytesToTerminal).toString();
     if (str.length > 0) {
       /* append to log */
       const lastlog = slots[slotId].lastlog;
@@ -123,12 +132,15 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
     P: 0,
     T: NaN,
 
-    inputQueue: [],
+    /* put reset command in queue from the start */
+    inputQueue: [0x15],
     lastlog: [''],
     Isum: 0,
     Icount: 0,
 
     lastByte: 0,
+    hadData: 0,
+
     statusUpdates: 0,
     bytesTransferred: 0,
 

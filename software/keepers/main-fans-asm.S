@@ -3,6 +3,7 @@
 
 #define zero                r0
 #define slot_nr             r1
+#define sreg_int            r2
 
 #define miso_buffer_l       r6
 #define miso_buffer_h       r7
@@ -43,6 +44,7 @@
 ; spi data received interrupt
 .global SPI_STC_vect
 SPI_STC_vect:
+    in sreg_int, _SFR_IO_ADDR(SREG)
     in spi_reg_in, _SFR_IO_ADDR(SPDR)
     out _SFR_IO_ADDR(SPDR), spi_reg_out
 
@@ -60,6 +62,7 @@ SPI_STC_vect:
     st Z+, spi_reg_in
     ldi zh, 0x08
 
+    out _SFR_IO_ADDR(SREG), sreg_int
     reti
 
 
