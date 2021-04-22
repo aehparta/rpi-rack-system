@@ -1,0 +1,3 @@
+[submodule "libe"]
+	path = libe
+	url = https://github.com/aehparta/libe.git
