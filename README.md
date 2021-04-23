@@ -31,9 +31,7 @@ Well, as it turns out, PCBs get cheaper and cheaper.
 ![connectors](https://github.com/aehparta/rpi-rack-system/blob/master/images/connectors.jpg)
 ![fans](https://github.com/aehparta/rpi-rack-system/blob/master/images/fans.jpg)
 
-![caps](https://github.com/aehparta/rpi-rack-system/blob/master/images/caps.jpg)
-
-![active-bridge](https://github.com/aehparta/rpi-rack-system/blob/master/images/active-bridge.jpg)
+<img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/caps.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/active-bridge.jpg" width="48%">
 
 ![control](https://github.com/aehparta/rpi-rack-system/blob/master/images/control.jpg)
 
