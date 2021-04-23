@@ -29,6 +29,8 @@ Well, as it turns out, PCBs get cheaper and cheaper.
 
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-empty.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-with-rpi.jpg" width="48%">
 
+Holder for Raspberry Pi compatible boards and Orange Pi compatible boards.
+
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/connectors.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/fans.jpg" width="48%">
 
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/caps.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/active-bridge.jpg" width="48%">
