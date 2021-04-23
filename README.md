@@ -36,6 +36,6 @@ Well, as it turns out, PCBs get cheaper and cheaper.
 
 ![installed-slots](https://github.com/aehparta/rpi-rack-system/blob/master/images/installed-slots.jpg)
 
-<img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-overview.png" width="50%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-slot-view.png" width="50%">
+<img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-overview.png" width="50%"><img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-slot-view.png" width="50%">
 
 
