@@ -3,6 +3,9 @@ const slots = require('./slots');
 const fans = require('./fans');
 const fs = require('fs');
 
+const CMD_POWER = 0x10;
+const CMD_RESET = 0x15;
+
 console.log(`url: ${config.url}`);
 console.log(`bind: ${config.bind}:${config.port}`);
 console.log(`slots: ${config.slots.length}`);
@@ -54,9 +57,16 @@ io.sockets.on('connection', (socket) => {
     const slot = slots[Number(slotId)];
     if (slot !== undefined) {
       Buffer.from(data).forEach((value) => {
-        // console.log(value);
         slot.inputQueue.push(value);
       });
+    }
+  });
+  socket.on('power', (slotId, value) => {
+    const slot = slots[Number(slotId)];
+    if (slot !== undefined) {
+      const v = value !== undefined ? value : !slot.powered;
+      slot.inputQueue.push(CMD_POWER);
+      slot.inputQueue.push(v ? 0x81 : 0x80);
     }
   });
   socket.on('fans-speed', (speed) => {

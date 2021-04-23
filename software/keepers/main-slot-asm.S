@@ -20,6 +20,7 @@
 #define current_raw         r17
 #define card_ok_counter     r18
 #define button_pushed       r19
+#define last_byte           r20
 
 ; constant registers used by interrupt routines
 ; these registers must not be used elsewhere
@@ -32,7 +33,11 @@
 ; don't use register higher than previous, they are reserved for X, Y and Z
 
 ; incoming spi special commands
+#define CMD_POWER           0x10
 #define CMD_RESET           0x15
+
+#define CMD_MIN             0x10
+#define CMD_MAX             0x1a
 
 ; button
 #define BUTTON_PORT         _SFR_IO_ADDR(PIND)
@@ -138,6 +143,9 @@ asm_main:
     ; spi interrupt related registers
     clr spi_reg_in
     clr spi_reg_out
+
+    ; previous byte that could be a command
+    clr last_byte
 
     ; button pushed counter
     clr button_pushed
@@ -303,27 +311,57 @@ mosi_buffer_handler_has_data:
     st Y, zero
     ; increase buffer pointer
     inc yl
-    ; power on command check
-    cpi tmp0, 0x05
-    brne mosi_buffer_handler_has_data__not_power_on
-    ; don't accept power commands for slot 0 from remote
-    cpse slot_nr, zero
-    rcall power_state_update_on
-    ret
-mosi_buffer_handler_has_data__not_power_on:
-    ; power off command check
-    cpi tmp0, 0x04
-    brne mosi_buffer_handler_has_data__not_power_off
-    ; don't accept power commands for slot 0 from remote
-    cpse slot_nr, zero
-    rcall power_state_update_off
-    ret
-mosi_buffer_handler_has_data__not_power_off:
+    ; check if last byte was command
+    cpse last_byte, zero
+    rjmp mosi_buffer_handler__cmd
+    ; check if this is a command or not
+    cpi tmp0, CMD_MIN
+    brlo mosi_buffer_handler__send_to_uart
+    cpi tmp0, CMD_MAX + 1
+    brsh mosi_buffer_handler__send_to_uart
+    ; if single byte command
     cpi tmp0, CMD_RESET
-    brne mosi_buffer_handler_has_data__not_reset
-    ; TODO
+    breq mosi_buffer_handler__cmd_reset
+    ; it is a command, save for next round
+    mov last_byte, tmp0
     ret
-mosi_buffer_handler_has_data__not_reset:
+
+mosi_buffer_handler__send_to_uart:
     ; sent to uart
     sts UDR0, tmp0
+    ret
+
+mosi_buffer_handler__cmd:
+    ; check if previous byte was power state command
+    cpi last_byte, CMD_POWER
+    breq mosi_buffer_handler__cmd_power
+    ; no command matched, just clear and continue
+    clr last_byte
+    ret
+
+mosi_buffer_handler__cmd_reset:
+    cli
+    ldi xh, 0x01
+    clr xl
+mosi_buffer_handler__cmd_reset_clear_ram_loop:
+    st X+, zero
+    cpse xh, 0x08
+    rjmp mosi_buffer_handler__cmd_reset_clear_ram_loop
+    ldi xh, 0x01
+    movw miso_buffer_l, xl
+    sei
+    ret
+
+mosi_buffer_handler__cmd_power:
+    clr last_byte
+    cpse slot_nr, zero
+    rjmp mosi_buffer_handler__cmd_power_accepted
+    ; this was sent to slot 0, we do not accept remote power commands for slot 0
+    ret
+mosi_buffer_handler__cmd_power_accepted:
+    ; on or off
+    sbrc tmp0, 0
+    rcall power_state_update_on
+    sbrs tmp0, 0
+    rcall power_state_update_off
     ret

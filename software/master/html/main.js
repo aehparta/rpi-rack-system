@@ -102,7 +102,7 @@ const app = new Vue({
       this.view = 'overview';
     },
     slotPowerToggle(id) {
-      socket.emit('terminal', id, this.slots[id].powered ? '\4' : '\5');
+      socket.emit('power', id);
     },
     fansSpeedChange() {
       socket.emit('fans-speed', this.fans.speed);

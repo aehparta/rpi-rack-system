@@ -15,6 +15,7 @@ const commandCharacters = [
   0x12,
   0x13,
   0x14,
+  0x15,
 ];
 
 const slotTransfer = (slotId, callback) => {
@@ -26,7 +27,12 @@ const slotTransfer = (slotId, callback) => {
   ]);
   spi.transfer(slot.id, sendBuffer, (data) => {
     slot.bytesTransferred += data.length;
-    // sendFirstCh != 0x11 && console.log(sendBuffer, data);
+    /* if we sent a reset this time, then ignore everything that was read */
+    // if (slot.doReset) {
+    //   slot.doReset = false;
+    //   callback('');
+    //   return;
+    // }
 
     if (slot.hadData > 0) {
       slot.hadData--;
@@ -133,13 +139,14 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
     T: NaN,
 
     /* put reset command in queue from the start */
-    inputQueue: [0x15],
+    inputQueue: [],
     lastlog: [''],
     Isum: 0,
     Icount: 0,
 
     lastByte: 0,
     hadData: 0,
+    doReset: true,
 
     statusUpdates: 0,
     bytesTransferred: 0,
