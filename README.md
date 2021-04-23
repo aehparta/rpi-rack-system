@@ -16,7 +16,8 @@ Single backplane module:
 * Takes 4 holder boards using 2x10 card edge connector (3.96 mm pitch)
 
 ## First installation with single modular piece without frame
-![first installation](https://github.com/aehparta/rpi-rack-system/blob/master/images/rpi-rack-first-installation.jpg)
+
+<img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/rpi-rack-first-installation.jpg" width="60%">
 
 ## Power supply
 
