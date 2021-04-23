@@ -40,7 +40,7 @@ Front and back view of assembled backplane connected to enclosure attachment bra
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/caps.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/active-bridge.jpg" width="48%">
 
-Some big caps and view to active rectifier circuit (most left 8-pin DIP) and big 45A schottky diodes for automatic transfer from AC to battery on AC power loss.
+Some big caps and view to active rectifier circuit (four FETs on heatsinks in left image and 8-pin DIP on right image) and big 45A schottky diodes for automatic transfer from AC to battery on AC power loss.
 
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/control.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/current-measurement-circuit.jpg" width="48%">
