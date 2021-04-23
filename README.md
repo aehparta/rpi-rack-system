@@ -55,4 +55,4 @@ Populating the slots for software development.
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-overview.png" width="50%"><img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-slot-view.png" width="50%">
 
-The control UI. As seen from the second image, there are some (known) software bugs. This bug related to some random characters appearing once in a few minutes is known to me and I know how to fix it. Someday after other things work better.
+The control UI. As seen from the second image, there are some (known) software bugs. This bug related to some random characters appearing once in a few minutes is known to me and I know how to fix it when I have the time.
