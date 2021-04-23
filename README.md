@@ -57,5 +57,5 @@ Populating the slots for software development.
 
 The control UI. As seen from the second image, there are some (known) software bugs. This bug related to some random characters appearing once in a few minutes is known to me and I know how to fix it when I have the time.
 
-In overview current is the sum off all slots. In slot view current is calculated from power usage and converted to what the current would be at 5 volts (slot power / 5 = shown current in slot view).
+In overview, current is the sum off all slots. In slot view, current is calculated from power usage and converted to what the current would be at 5 volts (slot power / 5 = shown current in slot view).
 
