@@ -35,16 +35,24 @@ Holder for Raspberry Pi compatible boards and Orange Pi compatible boards.
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/connectors.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/fans.jpg" width="48%">
 
+Front and back view of assembled backplane connected to enclosure attachment brackets.
+
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/caps.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/active-bridge.jpg" width="48%">
+
+Some big caps and view to active rectifier circuit (most left 8-pin DIP) and big 45A schottky diodes for automatic transfer from AC to battery on AC power loss.
 
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/control.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/current-measurement-circuit.jpg" width="48%">
 
+Some slot control and slot specific current measurement circuitry.
+
 ---
 ![installed-slots](https://github.com/aehparta/rpi-rack-system/blob/master/images/installed-slots.jpg)
+
+Populating the slots for software development.
 
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-overview.png" width="50%"><img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-slot-view.png" width="50%">
 
-
+The control UI.
