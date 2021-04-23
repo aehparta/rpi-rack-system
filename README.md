@@ -40,8 +40,12 @@ Well, as it turns out, PCBs get cheaper and cheaper.
 
 ![control](https://github.com/aehparta/rpi-rack-system/blob/master/images/control.jpg)
 
-![current-measurement](https://github.com/aehparta/rpi-rack-system/blob/master/images/current-measurement.jpg)
+![current-measurement-circuit](https://github.com/aehparta/rpi-rack-system/blob/master/images/current-measurement-circuit.jpg)
 
 ![installed-slots](https://github.com/aehparta/rpi-rack-system/blob/master/images/installed-slots.jpg)
+
+![ui-overview](https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-overview.jpg)
+
+![ui-slot-view](https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-slot-view.jpg)
 
 
