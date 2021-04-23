@@ -16,7 +16,7 @@ Single backplane module:
 * Takes 4 holder boards using 2x10 card edge connector (3.96 mm pitch)
 
 ## First installation with single modular piece without frame
-![first installation](https://github.com/aehparta/rpi-rack-system/blob/master/images/rpi-rack-first-installation.jpg)
+![first installation](https://github.com/aehparta/rpi-rack-system/blob/master/images/rpi-rack-first-installation.jpg | width=48)
 
 ## Power supply
 
@@ -26,7 +26,7 @@ Each Raspberry Pi holder has it's own DC-DC converter which uses Ti TPS5450 and 
 
 Well, as it turns out, PCBs get cheaper and cheaper.
 
-![holder-empty](https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-empty.jpg){width:50%}
+![holder-empty](https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-empty.jpg)
 
 ![holder-with-rpi](https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-with-rpi.jpg)
 
