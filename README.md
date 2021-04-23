@@ -26,7 +26,7 @@ Each Raspberry Pi holder has it's own DC-DC converter which uses Ti TPS5450 and 
 
 Well, as it turns out, PCBs get cheaper and cheaper.
 
-![holder-empty](https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-empty.jpg)
+![holder-empty](https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-empty.jpg){width:50%}
 
 ![holder-with-rpi](https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-with-rpi.jpg)
 
