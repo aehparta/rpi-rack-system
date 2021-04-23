@@ -28,14 +28,11 @@ Well, as it turns out, PCBs get cheaper and cheaper.
 
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-empty.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/holder-with-rpi.jpg" width="48%">
 
-![connectors](https://github.com/aehparta/rpi-rack-system/blob/master/images/connectors.jpg)
-![fans](https://github.com/aehparta/rpi-rack-system/blob/master/images/fans.jpg)
+<img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/connectors.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/fans.jpg" width="48%">
 
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/caps.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/active-bridge.jpg" width="48%">
 
-![control](https://github.com/aehparta/rpi-rack-system/blob/master/images/control.jpg)
-
-![current-measurement-circuit](https://github.com/aehparta/rpi-rack-system/blob/master/images/current-measurement-circuit.jpg)
+<img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/control.jpg" width="48%"> <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/current-measurement-circuit.jpg" width="48%">
 
 ![installed-slots](https://github.com/aehparta/rpi-rack-system/blob/master/images/installed-slots.jpg)
 
