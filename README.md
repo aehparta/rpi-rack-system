@@ -55,7 +55,7 @@ Populating the slots for software development.
 ---
 <img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-overview.png" width="50%"><img src="https://github.com/aehparta/rpi-rack-system/blob/master/images/ui-slot-view.png" width="50%">
 
-The control UI. As seen from the second image, there are some (known) software bugs. This bug related to some random characters appearing once in a few minutes is known to me and I know how to fix it when I have the time (it's a race condition in UART and SPI data handling).
+The control UI. As seen from the second image, there are some (known) software bugs. This bug related to some random characters appearing once in a few minutes is known to me and I know how to fix it when I have the time (it's a race condition between incoming UART data handler and outgoing SPI data handler).
 
 In overview, current is the sum off all slots. In slot view, current is calculated from power usage and converted to what the current would be at 5 volts (slot power / 5 = shown current in slot view).
 
