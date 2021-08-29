@@ -135,7 +135,7 @@ setInterval(() => {
   console.log(
     '| ' +
       (
-        (spiTransferCount / 12).toFixed(0) + ' SPI transfers/second/ slot'
+        (spiTransferCount / 12).toFixed(0) + ' SPI transfers/second/slot'
       ).padEnd(44) +
       fans.U.toFixed(1).padStart(6) +
       ' V |'
