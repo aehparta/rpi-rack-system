@@ -46,6 +46,11 @@ nav > button.led {
 }
 
 button,
+select {
+  cursor: pointer;
+}
+
+button,
 select,
 .measurement {
   display: inline-block;

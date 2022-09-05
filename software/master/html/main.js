@@ -38,7 +38,6 @@ const app = new Vue({
       }
     });
     socket.on('fans-speed', (speed) => {
-      console.log(speed);
       this.fans.speed = Number(speed);
     });
     term.onKey((event) => {

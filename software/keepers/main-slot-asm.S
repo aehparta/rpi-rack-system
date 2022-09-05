@@ -302,7 +302,6 @@ miso_buffer_handler:
     ldi yh, 0x01
     movw miso_buffer_l, yl
 miso_buffer_handler_end:
-
     rjmp main_loop
 
 

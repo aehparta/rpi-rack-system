@@ -1,6 +1,7 @@
 /* low level IO related stuff */
 const SPI = require('spi-device');
 const GPIO = require('onoff').Gpio;
+const config = require('./config');
 
 const cs = [
   new GPIO(18, 'out'),
@@ -8,7 +9,7 @@ const cs = [
   new GPIO(24, 'out'),
   new GPIO(25, 'out'),
 ];
-cs.forEach(pin => pin.writeSync(1));
+cs.forEach((pin) => pin.writeSync(1));
 
 const rst = new GPIO(7, 'out');
 rst.writeSync(1);
@@ -32,10 +33,10 @@ const transfer = (slotId, data, callback) => {
         sendBuffer: data,
         receiveBuffer: Buffer.alloc(data.length),
         byteLength: data.length,
-        speedHz: 1e6,
+        speedHz: config.spi.speed,
       },
     ];
-    spiDevice.transfer(buffer, err => {
+    spiDevice.transfer(buffer, (err) => {
       if (err) {
         throw err;
       }

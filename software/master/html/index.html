@@ -28,16 +28,16 @@
           <h1>Overview</h1>
           <div class="panel">
             <div class="widget">
+              <div class="label"><label>Power</label></div>
+              <div class="measurement">{{overview.P.toFixed(1)}} W</div>
+            </div>
+            <div class="widget">
               <div class="label"><label>Voltage</label></div>
               <div class="measurement">{{overview.U.toFixed(1)}} V</div>
             </div>
             <div class="widget">
               <div class="label"><label>Current</label></div>
               <div class="measurement">{{overview.I.toFixed(3)}} A</div>
-            </div>
-            <div class="widget">
-              <div class="label"><label>Power</label></div>
-              <div class="measurement">{{overview.P.toFixed(1)}} W</div>
             </div>
             <div class="widget">
               <div class="label"><label>Fans speed</label></div>
@@ -63,19 +63,20 @@
               </button>
             </div>
             <div class="widget">
-              <div class="label"><label>Current</label></div>
+              <div class="label"><label>Power</label></div>
+              <div class="measurement">{{slot.P.toFixed(1)}} W</div>
+            </div>
+            <div class="widget">
+              <div class="label"><label>Current @ 5 V</label></div>
               <div class="measurement">{{(slot.P / 5).toFixed(2)}} A</div>
             </div>
             <div class="widget">
-              <div class="label"><label>Power</label></div>
-              <div class="measurement">{{slot.P.toFixed(1)}} W</div>
+              <div class="label"><label>Current</label></div>
+              <div class="measurement">{{slot.I.toFixed(3)}} A</div>
             </div>
             <div v-if="Number.isInteger(slot.T)" class="widget">
               <div class="label"><label>Temperature</label></div>
               <div class="measurement">{{slot.T}} °C</div>
-            </div>
-            <div class="widget">
-              <button class="toggle led orange">togLed</button>
             </div>
           </div>
         </div>
@@ -83,7 +84,6 @@
       </main>
     </div>
     <script src="vue.min.js"></script>
-    <script src="jquery-3.6.0.min.js"></script>
     <script src="xterm.js"></script>
     <script src="socket.io/socket.io.js"></script>
     <script src="main.js"></script>
