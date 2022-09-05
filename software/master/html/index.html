@@ -78,6 +78,10 @@
               <div class="label"><label>Temperature</label></div>
               <div class="measurement">{{slot.T}} °C</div>
             </div>
+            <div v-if="typeof slot.internet == 'boolean'" class="widget">
+              <div class="label"><label>Internet</label></div>
+              <div class="measurement">{{slot.internet ? 'YES' : 'NO' }}</div>
+            </div>
           </div>
         </div>
         <div id="terminal" v-show="slot"></div>

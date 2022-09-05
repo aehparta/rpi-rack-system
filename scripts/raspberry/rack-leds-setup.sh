@@ -42,6 +42,13 @@ case "$1" in
                 sequence=`printf "\\20\\%o" $T`
                 printf "$sequence" > /dev/ttyS0
             fi
+            # check and send internet connectivity
+            sequence=`printf "\\23n"`
+            ping -c 1 -w 1 8.8.8.8
+            if [ "$?" == "0" ]; then
+                sequence=`printf "\\23y"`
+            fi
+            printf "$sequence" > /dev/ttyS0
         done
     ;;
     shutdown)

@@ -21,6 +21,7 @@
 #define card_ok_counter     r18
 #define button_pushed       r19
 #define last_byte           r20
+#define uart_had_command    r21
 
 ; constant registers used by interrupt routines
 ; these registers must not be used elsewhere
@@ -153,12 +154,15 @@ asm_main:
     ; card disconnect detection timer
     clr card_ok_counter
 
-    ; ADC */
+    ; ADC
     clr adc_c
     clr adc_0
     clr adc_1
     clr adc_2
     ser current_raw
+
+    ; UART related
+    clr uart_had_command
 
     ; enable interrupts 
     sei
@@ -295,6 +299,25 @@ miso_buffer_handler:
     movw yl, miso_buffer_l
     ; receive byte from uart
     lds tmp0, UDR0
+    ; check if last one was a command
+    cp uart_had_command, zero
+    breq miso_buffer_handler_check
+    ; we cannot send zero, ever, so skip if data for the command is zero
+    cpse tmp0, zero
+    st Y+, uart_had_command
+    sbrc yh, 3
+    ldi yh, 0x01
+    clr uart_had_command
+    rjmp miso_buffer_handler_queue
+    ; check if this is a command or not
+miso_buffer_handler_check:
+    cpi tmp0, CMD_MIN
+    brlo miso_buffer_handler_queue
+    cpi tmp0, CMD_MAX + 1
+    brsh miso_buffer_handler_queue
+    mov uart_had_command, tmp0
+    clr tmp0
+miso_buffer_handler_queue:
     cpse tmp0, zero
     st Y+, tmp0
     ; buffer is 0x0100-0x07ff, so check when pointer flips to 0x0800 (fourth bit is set)
@@ -302,6 +325,8 @@ miso_buffer_handler:
     ldi yh, 0x01
     movw miso_buffer_l, yl
 miso_buffer_handler_end:
+
+
     rjmp main_loop
 
 

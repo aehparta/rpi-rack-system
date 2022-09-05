@@ -65,6 +65,9 @@ const slotTransfer = (slotId, callback) => {
           slot.Icount++;
         }
         slot.lastByte = 0;
+      } else if (slot.lastByte === 0x13) {
+        slot.internet = ch == 121;
+        slot.lastByte = 0;
       } else {
         if (!commandCharacters.includes(ch)) {
           bytesToTerminal.push(ch);
@@ -137,6 +140,7 @@ for (let slotId = 0; slotId < config.slots.length; slotId++) {
     I: 0,
     P: 0,
     T: NaN,
+    internet: null,
 
     /* put reset command in queue from the start */
     inputQueue: [],

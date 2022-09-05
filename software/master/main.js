@@ -99,6 +99,7 @@ setInterval(() => {
       I: slot.I,
       P: slot.P,
       T: slot.T,
+      internet: slot.internet,
       ok: slot.ok,
       hasCard: slot.hasCard,
       powered: slot.powered,
