@@ -47,6 +47,10 @@ case "$1" in
             ping -c 1 -w 1 8.8.8.8
             if [ "$?" == "0" ]; then
                 sequence=`printf "\\23y"`
+            else
+                echo 1 > /sys/class/gpio/gpio17/value
+                sleep 0.05
+                echo 0 > /sys/class/gpio/gpio17/value
             fi
             printf "$sequence" > /dev/ttyS0
         done
