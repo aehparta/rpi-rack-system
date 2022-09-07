@@ -60,8 +60,8 @@ const slotTransfer = (slotId, callback) => {
         slot.poweredDefault = slot.ok && ch & 0x01 ? true : false;
         slot.lastByte = 0;
       } else if (slot.lastByte === 0x12) {
-        if (slot.powered && ch >= 2 && ch < 255) {
-          slot.Isum += (ch - 2) * 8.2;
+        if (slot.powered && ch >= slot.Ioffset && ch < 255) {
+          slot.Isum += (ch - slot.Ioffset) * slot.Imultiplier;
           slot.Icount++;
         }
         slot.lastByte = 0;

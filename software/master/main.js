@@ -130,33 +130,33 @@ const upkeep = (slot) => {
 };
 upkeep(slots[0]);
 
-setInterval(() => {
-  console.log('\033[2J');
-  console.log('|------------------------------------------------------|');
-  console.log(
-    '| ' +
-      (
-        (spiTransferCount / 12).toFixed(0) + ' SPI transfers/second/slot'
-      ).padEnd(44) +
-      fans.U.toFixed(1).padStart(6) +
-      ' V |'
-  );
-  console.log('|------------------------------------------------------|');
-  console.log('| Slot            Ok      Card    Updates/s Bytes/s    |');
-  console.log('|------------------------------------------------------|');
-  slots.forEach((slot) => {
-    console.log(
-      `| ${slot.label.padEnd(16)}${
-        slot.ok ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
-      }${
-        slot.hasCard ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
-      }${slot.statusUpdates
-        .toFixed(0)
-        .padEnd(10)}${slot.bytesTransferred.toFixed(0).padEnd(10)} |`
-    );
-    slot.statusUpdates = 0;
-    slot.bytesTransferred = 0;
-  });
-  console.log('|------------------------------------------------------|');
-  spiTransferCount = 0;
-}, 1000);
+// setInterval(() => {
+//   console.log('\033[2J');
+//   console.log('|------------------------------------------------------|');
+//   console.log(
+//     '| ' +
+//       (
+//         (spiTransferCount / 12).toFixed(0) + ' SPI transfers/second/slot'
+//       ).padEnd(44) +
+//       fans.U.toFixed(1).padStart(6) +
+//       ' V |'
+//   );
+//   console.log('|------------------------------------------------------|');
+//   console.log('| Slot            Ok      Card    Updates/s Bytes/s    |');
+//   console.log('|------------------------------------------------------|');
+//   slots.forEach((slot) => {
+//     console.log(
+//       `| ${slot.label.padEnd(16)}${
+//         slot.ok ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
+//       }${
+//         slot.hasCard ? '\033[1;32mYes     \033[0m' : '\033[1;31mNo      \033[0m'
+//       }${slot.statusUpdates
+//         .toFixed(0)
+//         .padEnd(10)}${slot.bytesTransferred.toFixed(0).padEnd(10)} |`
+//     );
+//     slot.statusUpdates = 0;
+//     slot.bytesTransferred = 0;
+//   });
+//   console.log('|------------------------------------------------------|');
+//   spiTransferCount = 0;
+// }, 1000);

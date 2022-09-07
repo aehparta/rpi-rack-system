@@ -2,7 +2,7 @@ const { spi } = require('./io');
 
 const state = {
   U: 0,
-  state: 0x3f,
+  state: 0x00,
   speed: 0x08,
   lastByte: undefined,
 };

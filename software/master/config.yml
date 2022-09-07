@@ -1,0 +1,37 @@
+slots:
+  0:
+    Ioffset: 2
+    Imultiplier: 8.2
+  1:
+    Ioffset: 3
+    Imultiplier: 8.47
+  2:
+    Ioffset: 3
+    Imultiplier: 8.62
+  3:
+    Ioffset: -1
+    Imultiplier: 8.35
+  4:
+    Ioffset: -1
+    Imultiplier: 8.62
+  5:
+    Ioffset: 3
+    Imultiplier: 8.5
+  6:
+    Ioffset: 3
+    Imultiplier: 8.7
+  7:
+    Ioffset: 4
+    Imultiplier: 8.47
+  8:
+    Ioffset: 0
+    Imultiplier: 8.47
+  9:
+    Ioffset: 4
+    Imultiplier: 8.47
+  10:
+    Ioffset: 3
+    Imultiplier: 8.44
+  11:
+    Ioffset: -1
+    Imultiplier: 8.62
