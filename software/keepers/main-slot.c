@@ -1,6 +1,6 @@
 /*
  * Use: avrdude -c linuxspi -p atmega328p -P /dev/spidev0.0 -b 100000
- * Fuses: -U lfuse:w:0xde:m -U hfuse:w:0xd1:m -U efuse:w:0xff:m
+ * Fuses: -U lfuse:w:0xe0:m -U hfuse:w:0xd1:m -U efuse:w:0xff:m
  */
 
 #include <libe/libe.h>
@@ -12,7 +12,7 @@ extern void asm_main(void);
  * PC0 = PI shutdown
  * PC1 = PI power off
  * PC2 = holder card inserted (low, otherwise floating)
- * PC3 = PI heart beep
+ * PC3 = PI heartbeat
  * PD4 = LED R
  * PD5 = LED G
  * PD6 = LED B
@@ -22,6 +22,8 @@ extern void asm_main(void);
 #define POWER GPIOB0
 
 #define CARD_INSERTED GPIOC2
+#define SHUTDOWN_REQUEST GPIOC0
+#define POWER_OFF_SIGNAL GPIOC1
 
 #define LED_R GPIOD4
 #define LED_G GPIOD5
@@ -51,8 +53,6 @@ int p_init(void)
 	gpio_output(GPIOB4); /* MISO must be set as output */
 	SPCR = (1 << SPIE) | (1 << SPE);
 
-	/* enable uart odd parity */
-	// UCSR0C |= (1 << UPM00) | (1 << UPM01);
 	/* reset uart receive bit */
 	UCSR0B |= (1 << RXEN0);
 
@@ -81,6 +81,12 @@ int p_init(void)
 	/* card inserted detection (floating so enable internal pull-up) */
 	gpio_input(CARD_INSERTED);
 	gpio_high(CARD_INSERTED);
+
+	/* as inputs with pull-up for now */
+	gpio_input(SHUTDOWN_REQUEST);
+	gpio_high(SHUTDOWN_REQUEST);
+	gpio_input(POWER_OFF_SIGNAL);
+	gpio_high(POWER_OFF_SIGNAL);
 
 	/* adc reference voltage to internal 1.1 V, adjust result left and channel 7 */
 	ADMUX = (1 << REFS1) | (1 << REFS0) | (1 << ADLAR) | 0x07;

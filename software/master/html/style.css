@@ -50,6 +50,10 @@ select {
   cursor: pointer;
 }
 
+button:hover, select:hover {
+  background: #a0a0a0;
+}
+
 button,
 select,
 .measurement {

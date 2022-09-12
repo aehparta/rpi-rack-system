@@ -21,6 +21,8 @@ const reset = (slotId, single = false) => {
       'linuxspi',
       '-P',
       '/dev/spidev0.0',
+      '-b',
+      '100000',
     ];
     const cmd = spawn('sudo', args);
     cmd.stdout.on('data', (data) => process.stdout.write(data));

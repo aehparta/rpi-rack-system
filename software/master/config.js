@@ -34,7 +34,6 @@ try {
     if (typeof config.slots === 'object') {
       config.slots = Object.values(config.slots);
     }
-    console.log(config);
   }
 } catch (e) {}
 

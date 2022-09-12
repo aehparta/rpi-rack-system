@@ -91,6 +91,10 @@ const app = new Vue({
         term.reset();
         term.resize(80, 30);
         term.write(this.slot.lastlog);
+        setTimeout(() => {
+          term.scrollToBottom();
+          term.focus();
+        }, 100);
       });
     },
     showOverview() {

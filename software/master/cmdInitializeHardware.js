@@ -19,13 +19,13 @@ const initialize = (slot, callback) => {
       '-b',
       '100000',
       '-U',
-      'lfuse:w:0xde:m',
+      'lfuse:w:0xe0:m',
       '-U',
       'hfuse:w:0xd1:m',
       '-U',
       'efuse:w:0xff:m',
       '-U',
-      `eeprom:w:${slot.id},0:m`,
+      `eeprom:w:${slot.id},1:m`,
     ];
     const cmd = spawn('sudo', args);
     cmd.stdout.on('data', (data) => process.stdout.write(data));

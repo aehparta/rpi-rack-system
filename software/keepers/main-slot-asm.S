@@ -5,6 +5,8 @@
 #define slot_nr             r1
 #define sreg_int            r2
 
+#define uart_had_command    r3
+
 #define miso_buffer_l       r6
 #define miso_buffer_h       r7
 #define mosi_buffer_l       r8
@@ -21,7 +23,7 @@
 #define card_ok_counter     r18
 #define button_pushed       r19
 #define last_byte           r20
-#define uart_had_command    r21
+#define miso_send_byte      r21
 
 ; constant registers used by interrupt routines
 ; these registers must not be used elsewhere
@@ -137,9 +139,9 @@ asm_main:
     sbrc state, 0
     ori state, 0x10
     ; set bit 4 (and 1) also if it is slot 0, it is on as default
-    ori state, 0x11
     cpse slot_nr, zero
-    andi state, ~0x11
+    cpse state, zero
+    ori state, 0x11
 
     ; spi interrupt related registers
     clr spi_reg_in
@@ -224,24 +226,14 @@ timer_handler:
     out _SFR_IO_ADDR(TIFR1), tmp1
     ; put state and raw current into send queue
     movw yl, miso_buffer_l
-    ld tmp1, Y
-    cpi tmp1, 0x10
-    breq timer_handler_had_command
-    ldi tmp1, 0x11
-    st Y+, tmp1
-    sbrc yh, 3
-    ldi yh, 0x01
-    st Y+, state
-    sbrc yh, 3
-    ldi yh, 0x01
-    ldi tmp1, 0x12
-    st Y+, tmp1
-    sbrc yh, 3
-    ldi yh, 0x01
-    st Y+, current_raw
-    sbrc yh, 3
-    ldi yh, 0x01
-timer_handler_had_command:
+    ldi miso_send_byte, 0x11
+    rcall miso_send
+    mov miso_send_byte, state
+    rcall miso_send
+    ldi miso_send_byte, 0x12
+    rcall miso_send
+    mov miso_send_byte, current_raw
+    rcall miso_send
     movw miso_buffer_l, yl
     ; check button (inside timer)
 button_handler:
@@ -303,10 +295,9 @@ miso_buffer_handler:
     cp uart_had_command, zero
     breq miso_buffer_handler_check
     ; we cannot send zero, ever, so skip if data for the command is zero
+    mov miso_send_byte, uart_had_command
     cpse tmp0, zero
-    st Y+, uart_had_command
-    sbrc yh, 3
-    ldi yh, 0x01
+    rcall miso_send
     clr uart_had_command
     rjmp miso_buffer_handler_queue
     ; check if this is a command or not
@@ -318,17 +309,23 @@ miso_buffer_handler_check:
     mov uart_had_command, tmp0
     clr tmp0
 miso_buffer_handler_queue:
+    mov miso_send_byte, tmp0
     cpse tmp0, zero
-    st Y+, tmp0
-    ; buffer is 0x0100-0x07ff, so check when pointer flips to 0x0800 (fourth bit is set)
-    sbrc yh, 3
-    ldi yh, 0x01
+    rcall miso_send
     movw miso_buffer_l, yl
 miso_buffer_handler_end:
 
 
     rjmp main_loop
 
+miso_send:
+    ld tmp1, Y
+    cpse tmp1, zero
+    rjmp miso_send
+    st Y+, miso_send_byte
+    sbrc yh, 3 ; buffer is 0x0100-0x07ff, so check when pointer flips to 0x0800 (fourth bit is set)
+    ldi yh, 0x01
+    ret
 
 mosi_buffer_handler_has_data:
     ; clear current position

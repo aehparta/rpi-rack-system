@@ -7,7 +7,7 @@ F_CPU_AVR = 11059200
 LDFLAGS_AVR += -Wl,-u,vfprintf -lprintf_flt
 
 USE = GPIO LOG NVM
-DEFINES = LOG_BAUD=57600
+DEFINES = LOG_BAUD=115200
 
 # avrdude
 AVRDUDE_PROGRAMMER = linuxspi
