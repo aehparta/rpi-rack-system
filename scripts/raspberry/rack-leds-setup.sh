@@ -44,7 +44,7 @@ case "$1" in
             fi
             # check and send internet connectivity
             sequence=`printf "\\23n"`
-            ping -c 1 -w 1 8.8.8.8
+            ping -c 1 -w 1 8.8.8.8 > /dev/null
             if [ "$?" == "0" ]; then
                 sequence=`printf "\\23y"`
             else
