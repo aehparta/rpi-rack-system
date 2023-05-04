@@ -11,7 +11,7 @@
   "dependencies": {
     "deepmerge": "^4.2.2",
     "onoff": "^6.0.3",
-    "socket.io": "^4.5.2",
+    "socket.io": "^4.6.1",
     "spi-device": "^3.1.2",
     "spi-node": "^3.0.1",
     "yaml": "^1.10.2"
